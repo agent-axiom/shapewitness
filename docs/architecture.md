@@ -1,5 +1,7 @@
 # Architecture and invariants
 
+[Home](../README.md) · [Documentation index](README.md)
+
 The implementation is deliberately small: `core.py` owns the selection contract;
 `cli.py` adapts files/streams, exclusive output creation, reports, and exit status.
 There is no hidden state, external configuration, plugin system, network client,

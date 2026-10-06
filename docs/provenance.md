@@ -1,0 +1,21 @@
+# Byte preservation and provenance
+
+[Home](../README.md) · [Documentation index](README.md)
+
+Rows are **never reserialized**. Spaces, key order, decimal lexemes, very large
+integers, CRLF endings, and an absent final newline are retained. The parser validates
+numeric syntax using a type marker, without floating-point conversion or a digit-size
+limit. The output is an ordered subsequence of original physical lines.
+
+The report has a versioned format (`format_version: 1`) and includes:
+
+- SHA-256 of the entire input byte stream, including explicitly skipped blank lines
+- Each selected row's 1-based physical line, 0-based byte offset, byte length, and SHA-256
+- Selection rank, all covered feature IDs, and newly covered IDs explaining each choice
+- Every observed feature, coverage state, and explicit uncovered feature IDs
+- Effective limits, selection budget, and why selection stopped
+
+Feature IDs are deterministic for identical input, but are report-local, not stable
+identifiers across different datasets. They index the report's `features` collection.
+A digest is an identity check, not proof of authenticity. Retain the original input
+if you need to verify or recover the exact source records later.

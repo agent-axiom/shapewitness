@@ -8,7 +8,7 @@ where appropriate. Python and SQLite must receive normal security updates.
 
 Selected rows retain every original value. Reports include key names, structure,
 provenance, and hashes. Neither artifact is safe to publish merely because the input
-has been reduced. Temporary deletion is not secure erasure. See the README for
+has been reduced. Temporary deletion is not secure erasure. See [input limits and privacy](docs/limits-privacy.md) for
 scratch-storage and output-failure semantics.
 
 For a suspected vulnerability, use GitHub's private vulnerability-reporting option
