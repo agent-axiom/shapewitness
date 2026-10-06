@@ -22,3 +22,7 @@ strict failures, nested missing semantics, provenance, and resource-bound checks
 See [architecture](architecture.md), [contributing](../CONTRIBUTING.md), and
 [security guidance](../SECURITY.md). MIT licensed. Version 0.1 is an initial release;
 report/feature semantics are versioned and may evolve in future releases.
+
+Release tooling and the optional pytest recipe are separate development dependencies.
+See [release readiness](release/README.md) for building and checking candidates;
+see [recipes](recipes/README.md) for their runnable commands.

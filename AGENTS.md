@@ -2,7 +2,8 @@
 
 ShapeWitness selects unchanged JSONL rows that cover an explicitly defined set of
 observed structural features. It is a Python 3.10+ CLI/library with no runtime or
-test dependencies outside the standard library.
+core-test dependencies outside the standard library. Release tooling and the optional
+pytest recipe have separate development dependencies.
 
 ## Read only what you need
 
@@ -18,7 +19,10 @@ test dependencies outside the standard library.
 - `tests/test_core.py`: edge cases, limit failures, seeded independent feature/selection oracle
 - `tests/test_cli.py`: process-level interface, output safety, hash-seed determinism
 - `tests/test_resources.py`: Linux-only bounded-address-space smoke test
-- `examples/`: synthetic input and reproducible expected outputs
+- `examples/`: synthetic input, reproducible outputs, and runnable recipes
+- `scripts/`: benchmark, package-description generation, and local distribution checks
+- `docs/release/`: release checklist and an inactive publisher template
+- `benchmarks/`: synthetic corpus and disclosed measured results
 
 ## Preserve these contracts
 

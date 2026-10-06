@@ -1,0 +1,62 @@
+# INACTIVE TEMPLATE. Review/approve account, publisher grant, environment, and
+# release before installing this as .github/workflows/publish.yml.
+# It is deliberately outside .github/workflows and grants no access as stored.
+name: Publish approved release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Approved version whose v-prefixed tag already exists
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: v${{ inputs.version }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - run: python -m pip install build==1.6.1 twine==7.0.0
+      - name: Verify the requested version
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: |
+          python - <<'PY'
+          import os, tomllib
+          with open('pyproject.toml', 'rb') as source:
+              actual = tomllib.load(source)['project']['version']
+          assert actual == os.environ['EXPECTED_VERSION'], 'Version/tag mismatch'
+          PY
+      - run: python scripts/prepare_pypi_readme.py --check
+      - run: python -m build --outdir dist
+      - run: python -m twine check --strict dist/*
+      - run: python scripts/check_distribution.py dist
+      - run: python -m pip install --no-deps dist/*.whl
+      - run: python -m unittest discover -s tests -v
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: approved-distributions
+          path: dist/
+          if-no-files-found: error
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/shapewitness
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: approved-distributions
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+        with:
+          attestations: true

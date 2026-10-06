@@ -10,6 +10,9 @@
 - [Limits and privacy](limits-privacy.md): strict JSONL contract, every default cap, memory/disk behavior, sensitive outputs
 - [Related tools](related-tools.md): scope alongside JSONLKit and jselect
 
+- [Recipes](recipes/README.md): pytest fixtures, ETL regression, importer repro
+- [Synthetic comparison](benchmark.md): disclosed coverage and timing against head/reservoir
+
 ## Work on the tool
 
 - [Architecture](architecture.md): data flow, invariants, complexity, compatibility
@@ -18,6 +21,7 @@
 - [Contributing](../CONTRIBUTING.md): change expectations
 - [Security](../SECURITY.md): trust boundaries and reporting
 - [Changelog](../CHANGELOG.md): implemented changes
+- [Release readiness](release/README.md): build candidates, metadata checks, publisher setup checklist
 
 Examples and CLI commands assume the repository root as the working directory.
 The [committed fixture](../examples/witness.jsonl) and [report](../examples/coverage.json)

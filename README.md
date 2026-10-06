@@ -49,6 +49,9 @@ Use `--require-complete` to fail CI when the selected rows leave observed featur
 | I want to… | Start here |
 | --- | --- |
 | Use the CLI, pipes, or Python API | [Usage](docs/usage.md) |
+| Build pytest fixtures, test ETL, or reproduce an importer bug | [Recipes](docs/recipes/README.md) |
+| Inspect a reproducible head/random comparison | [Synthetic benchmark](docs/benchmark.md) |
+| Build a wheel or prepare a release | [Release readiness](docs/release/README.md) |
 | Understand null, missing, arrays, and tie-breaking | [Feature model](docs/feature-model.md) |
 | Verify selected bytes and coverage explanations | [Provenance](docs/provenance.md) |
 | Check strict input rules, resource limits, and privacy | [Limits & privacy](docs/limits-privacy.md) |

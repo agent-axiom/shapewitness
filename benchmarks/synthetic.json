@@ -1,0 +1,432 @@
+{
+  "budget": 8,
+  "dataset": {
+    "bytes": 97305,
+    "description": "990 same-shape ordinary rows followed by 10 deliberately varied edge-case rows",
+    "generator": "scripts/compare_sampling.py:corpus",
+    "records": 1000,
+    "sha256": "2572dc5d4d5e21cda1d852c1e7515bcd5a8527fded5fe175b8009dbd34d546a4",
+    "synthetic": true
+  },
+  "environment": {
+    "machine": "x86_64",
+    "platform": "Linux",
+    "python": "3.12.14",
+    "timer": "perf_counter"
+  },
+  "format_version": 1,
+  "head": {
+    "covered_features": 8,
+    "max_seconds": 7.613998604938388e-06,
+    "median_seconds": 1.0390012903371826e-06,
+    "min_seconds": 6.239988579181954e-07,
+    "repeats": 5,
+    "selected_lines": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "selected_rows": 8
+  },
+  "limitations": [
+    "Synthetic tail-heavy structure intentionally demonstrates a case that favors structural selection.",
+    "Timing includes selection on bytes already in memory; corpus generation and coverage evaluation are excluded.",
+    "Head reads only the requested prefix; reservoir scans the corpus; neither validates or produces provenance.",
+    "ShapeWitness validates, discovers missing-member vocabulary, spools, selects, and builds a report.",
+    "This is not a statistical representativeness, fairness, throughput, or universal speed comparison.",
+    "Random results are the disclosed fixed seeds, not a population confidence interval."
+  ],
+  "observed_features": 47,
+  "reservoir": {
+    "coverage_max": 13,
+    "coverage_median": 8.0,
+    "coverage_min": 8,
+    "median_seconds": 0.0002251625001008506,
+    "runs": [
+      {
+        "covered_features": 8,
+        "max_seconds": 0.00035605099947133567,
+        "median_seconds": 0.000289253999653738,
+        "min_seconds": 0.00021554500017373357,
+        "repeats": 5,
+        "seed": 0,
+        "selected_lines": [
+          3,
+          180,
+          507,
+          786,
+          791,
+          820,
+          926,
+          931
+        ]
+      },
+      {
+        "covered_features": 8,
+        "max_seconds": 0.00025905199981934857,
+        "median_seconds": 0.00022547300068254117,
+        "min_seconds": 0.00022401200112653896,
+        "repeats": 5,
+        "seed": 1,
+        "selected_lines": [
+          9,
+          131,
+          355,
+          549,
+          628,
+          679,
+          715,
+          927
+        ]
+      },
+      {
+        "covered_features": 8,
+        "max_seconds": 0.0002436600007058587,
+        "median_seconds": 0.00023825999960536137,
+        "min_seconds": 0.00022284600163402501,
+        "repeats": 5,
+        "seed": 2,
+        "selected_lines": [
+          4,
+          155,
+          170,
+          299,
+          441,
+          476,
+          745,
+          754
+        ]
+      },
+      {
+        "covered_features": 8,
+        "max_seconds": 0.0003603509994718479,
+        "median_seconds": 0.00022361300034390297,
+        "min_seconds": 0.00021889600066060666,
+        "repeats": 5,
+        "seed": 3,
+        "selected_lines": [
+          122,
+          173,
+          288,
+          332,
+          363,
+          581,
+          812,
+          893
+        ]
+      },
+      {
+        "covered_features": 8,
+        "max_seconds": 0.00025502999960735906,
+        "median_seconds": 0.0002254090013593668,
+        "min_seconds": 0.00021985799867252354,
+        "repeats": 5,
+        "seed": 4,
+        "selected_lines": [
+          104,
+          129,
+          268,
+          457,
+          611,
+          898,
+          928,
+          971
+        ]
+      },
+      {
+        "covered_features": 8,
+        "max_seconds": 0.0002745909987424966,
+        "median_seconds": 0.00023194200002762955,
+        "min_seconds": 0.00022759400053473655,
+        "repeats": 5,
+        "seed": 5,
+        "selected_lines": [
+          25,
+          94,
+          118,
+          221,
+          434,
+          683,
+          792,
+          895
+        ]
+      },
+      {
+        "covered_features": 8,
+        "max_seconds": 0.0002827179996529594,
+        "median_seconds": 0.00022147900017444044,
+        "min_seconds": 0.00021972899958200287,
+        "repeats": 5,
+        "seed": 6,
+        "selected_lines": [
+          19,
+          327,
+          514,
+          638,
+          701,
+          871,
+          886,
+          977
+        ]
+      },
+      {
+        "covered_features": 10,
+        "max_seconds": 0.00032887800080061425,
+        "median_seconds": 0.0002397680000285618,
+        "min_seconds": 0.00021827799901075196,
+        "repeats": 5,
+        "seed": 7,
+        "selected_lines": [
+          60,
+          255,
+          326,
+          362,
+          613,
+          758,
+          934,
+          994
+        ]
+      },
+      {
+        "covered_features": 8,
+        "max_seconds": 0.0003509300004225224,
+        "median_seconds": 0.00022196600002644118,
+        "min_seconds": 0.00021739499970863108,
+        "repeats": 5,
+        "seed": 8,
+        "selected_lines": [
+          16,
+          50,
+          130,
+          158,
+          470,
+          569,
+          582,
+          852
+        ]
+      },
+      {
+        "covered_features": 12,
+        "max_seconds": 0.0007389020011032699,
+        "median_seconds": 0.00022174900004756637,
+        "min_seconds": 0.00021538900000450667,
+        "repeats": 5,
+        "seed": 9,
+        "selected_lines": [
+          335,
+          363,
+          483,
+          699,
+          892,
+          959,
+          970,
+          1000
+        ]
+      },
+      {
+        "covered_features": 8,
+        "max_seconds": 0.00028297199969529174,
+        "median_seconds": 0.00024322900026163552,
+        "min_seconds": 0.0002177259993914049,
+        "repeats": 5,
+        "seed": 10,
+        "selected_lines": [
+          47,
+          72,
+          155,
+          246,
+          448,
+          703,
+          832,
+          915
+        ]
+      },
+      {
+        "covered_features": 8,
+        "max_seconds": 0.0002449139992677374,
+        "median_seconds": 0.00021963500148558524,
+        "min_seconds": 0.00021252199985610787,
+        "repeats": 5,
+        "seed": 11,
+        "selected_lines": [
+          105,
+          127,
+          140,
+          232,
+          265,
+          268,
+          406,
+          514
+        ]
+      },
+      {
+        "covered_features": 8,
+        "max_seconds": 0.00022967500080994796,
+        "median_seconds": 0.000211219999982859,
+        "min_seconds": 0.0002102329999615904,
+        "repeats": 5,
+        "seed": 12,
+        "selected_lines": [
+          101,
+          139,
+          144,
+          182,
+          397,
+          491,
+          985,
+          989
+        ]
+      },
+      {
+        "covered_features": 8,
+        "max_seconds": 0.0002292970002599759,
+        "median_seconds": 0.00021345300046959892,
+        "min_seconds": 0.00020941099865012802,
+        "repeats": 5,
+        "seed": 13,
+        "selected_lines": [
+          4,
+          293,
+          382,
+          485,
+          557,
+          701,
+          749,
+          884
+        ]
+      },
+      {
+        "covered_features": 8,
+        "max_seconds": 0.00024316899907717016,
+        "median_seconds": 0.00022491599884233437,
+        "min_seconds": 0.00022410099882108625,
+        "repeats": 5,
+        "seed": 14,
+        "selected_lines": [
+          47,
+          48,
+          143,
+          222,
+          501,
+          556,
+          598,
+          822
+        ]
+      },
+      {
+        "covered_features": 8,
+        "max_seconds": 0.0002316310001333477,
+        "median_seconds": 0.0002128550004272256,
+        "min_seconds": 0.00021127899890416302,
+        "repeats": 5,
+        "seed": 15,
+        "selected_lines": [
+          133,
+          164,
+          288,
+          429,
+          475,
+          636,
+          695,
+          919
+        ]
+      },
+      {
+        "covered_features": 13,
+        "max_seconds": 0.0002677040010894416,
+        "median_seconds": 0.00022725099915987812,
+        "min_seconds": 0.00021496699991985224,
+        "repeats": 5,
+        "seed": 16,
+        "selected_lines": [
+          124,
+          408,
+          426,
+          552,
+          556,
+          943,
+          974,
+          995
+        ]
+      },
+      {
+        "covered_features": 8,
+        "max_seconds": 0.00026878300013777334,
+        "median_seconds": 0.0002262760008306941,
+        "min_seconds": 0.0002211699993495131,
+        "repeats": 5,
+        "seed": 17,
+        "selected_lines": [
+          99,
+          223,
+          386,
+          553,
+          647,
+          878,
+          959,
+          978
+        ]
+      },
+      {
+        "covered_features": 8,
+        "max_seconds": 0.00027840500115416944,
+        "median_seconds": 0.00023115399926609825,
+        "min_seconds": 0.00022105799871496856,
+        "repeats": 5,
+        "seed": 18,
+        "selected_lines": [
+          26,
+          189,
+          252,
+          663,
+          779,
+          827,
+          838,
+          899
+        ]
+      },
+      {
+        "covered_features": 13,
+        "max_seconds": 0.00024223200125561561,
+        "median_seconds": 0.0002236479995190166,
+        "min_seconds": 0.0002214739997725701,
+        "repeats": 5,
+        "seed": 19,
+        "selected_lines": [
+          34,
+          85,
+          140,
+          311,
+          603,
+          777,
+          826,
+          995
+        ]
+      }
+    ],
+    "seeds": 20
+  },
+  "shapewitness": {
+    "covered_features": 43,
+    "max_seconds": 0.1011417520003306,
+    "median_seconds": 0.10034539799926279,
+    "min_seconds": 0.09591660099977162,
+    "repeats": 5,
+    "selected_lines": [
+      1,
+      991,
+      992,
+      993,
+      995,
+      996,
+      997,
+      1000
+    ],
+    "selected_rows": 8
+  }
+}

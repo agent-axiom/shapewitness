@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Add runnable pytest, ETL regression, and importer bug-repro recipes.
+- Add a disclosed synthetic structural-coverage/timing comparison.
+- Prepare wheel/sdist metadata checks, a package-index-friendly description, and a
+  non-publishing release-readiness workflow. The publisher template remains inactive.
+
 ## 0.1.0
 
 Initial implementation: deterministic greedy structural witness selection for JSONL;

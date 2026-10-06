@@ -6,7 +6,9 @@ tradeoff. Use synthetic examples; never attach confidential JSONL exports.
 
 Install a checkout with `python -m pip install --no-deps -e .`, then run
 `python -m unittest discover -s tests -v` and `python -m compileall -q src tests`.
-The runtime and test suite use the standard library only.
+The runtime and core test suite use the standard library only. The optional pytest
+recipe and release tooling use separate development dependencies; see
+[release readiness](docs/release/README.md).
 
 Please preserve deterministic ordering, raw input bytes, strict error behavior,
 explicit bounds, and report-version compatibility. Add regression tests for every

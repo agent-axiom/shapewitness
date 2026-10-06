@@ -1,0 +1,6 @@
+[
+  {"id": 1, "user_state": "present", "total_state": "number", "tag_count": 1},
+  {"id": 3, "user_state": "present", "total_state": "null", "tag_count": 0},
+  {"id": 4, "user_state": "null", "total_state": "text", "tag_count": 1},
+  {"id": 5, "user_state": "empty", "total_state": "missing", "tag_count": 1}
+]
