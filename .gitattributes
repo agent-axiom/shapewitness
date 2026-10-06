@@ -1,0 +1,2 @@
+# JSONL fixtures are byte-level evidence. Never convert their line endings.
+*.jsonl -text
