@@ -1,0 +1,4 @@
+{"id":1,"user":{"name":"Ada","email":"ada@example.test"},"tags":["new"],"total":12.50}
+{"id":3,"user":{"name":"Cy"},"tags":[],"total":null}
+{"id":4,"user":null,"tags":[1],"total":"unknown"}
+{"id":5,"user":{},"tags":[{"label":"vip"}]}

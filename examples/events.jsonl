@@ -1,0 +1,6 @@
+{"id":1,"user":{"name":"Ada","email":"ada@example.test"},"tags":["new"],"total":12.50}
+{"id":2,"user":{"name":"Bo","email":"bo@example.test"},"tags":["repeat"],"total":20}
+{"id":3,"user":{"name":"Cy"},"tags":[],"total":null}
+{"id":4,"user":null,"tags":[1],"total":"unknown"}
+{"id":5,"user":{},"tags":[{"label":"vip"}]}
+{"id":6,"user":{"name":"Dee","email":"dee@example.test"},"tags":["repeat"],"total":30}

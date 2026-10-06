@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shapewitness"
+version = "0.1.0"
+description = "Small, explainable JSONL fixtures that witness observed structural features."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "ShapeWitness contributors"}]
+keywords = ["jsonl", "fixtures", "schema", "testing", "coverage"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Programming Language :: Python :: 3",
+  "Topic :: Software Development :: Testing",
+]
+dependencies = []
+
+[project.scripts]
+shapewitness = "shapewitness.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/agent-axiom/shapewitness"
+Issues = "https://github.com/agent-axiom/shapewitness/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+shapewitness = ["py.typed"]
