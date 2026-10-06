@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import sqlite3
+import sys
 import tempfile
 from dataclasses import asdict, dataclass
 from typing import Any, BinaryIO, Iterator
@@ -49,8 +50,8 @@ class Limits:
 
     def validate(self) -> None:
         for name, value in asdict(self).items():
-            if type(value) is not int or value < 1:
-                raise ShapeWitnessError("configuration", f"{name} must be a positive integer")
+            if type(value) is not int or not 1 <= value < sys.maxsize:
+                raise ShapeWitnessError("configuration", f"{name} must be a positive integer smaller than sys.maxsize")
         if self.max_depth > 256:
             raise ShapeWitnessError("configuration", "max_depth cannot exceed 256")
         if self.max_spool_bytes < 65_536:
@@ -211,23 +212,27 @@ def _features(value: Any, union: dict[Path, set[str]], limits: Limits, line: int
 
 def _connect(path: str, limits: Limits) -> sqlite3.Connection:
     db = sqlite3.connect(path)
-    os.chmod(path, 0o600)
-    db.execute("PRAGMA page_size=4096")
-    db.execute(f"PRAGMA max_page_count={limits.max_spool_bytes // 4096}")
-    db.execute("PRAGMA journal_mode=OFF")
-    db.execute("PRAGMA synchronous=OFF")
-    db.execute("PRAGMA cache_size=-8192")
-    db.execute("PRAGMA temp_store=FILE")
-    db.executescript("""
-        CREATE TABLE records (line INTEGER PRIMARY KEY, offset INTEGER NOT NULL,
-            raw BLOB NOT NULL, gain INTEGER NOT NULL DEFAULT 0);
-        CREATE TABLE features (id INTEGER PRIMARY KEY, path TEXT NOT NULL,
-            kind TEXT NOT NULL, covered INTEGER NOT NULL DEFAULT 0,
-            UNIQUE(path, kind));
-        CREATE TABLE edges (line INTEGER NOT NULL, feature INTEGER NOT NULL,
-            PRIMARY KEY(line, feature)) WITHOUT ROWID;
-        CREATE INDEX feature_lines ON edges(feature, line);
-    """)
+    try:
+        os.chmod(path, 0o600)
+        db.execute("PRAGMA page_size=4096")
+        db.execute(f"PRAGMA max_page_count={limits.max_spool_bytes // 4096}")
+        db.execute("PRAGMA journal_mode=OFF")
+        db.execute("PRAGMA synchronous=OFF")
+        db.execute("PRAGMA cache_size=-8192")
+        db.execute("PRAGMA temp_store=FILE")
+        db.executescript("""
+            CREATE TABLE records (line INTEGER PRIMARY KEY, offset INTEGER NOT NULL,
+                raw BLOB NOT NULL, gain INTEGER NOT NULL DEFAULT 0);
+            CREATE TABLE features (id INTEGER PRIMARY KEY, path TEXT NOT NULL,
+                kind TEXT NOT NULL, covered INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(path, kind));
+            CREATE TABLE edges (line INTEGER NOT NULL, feature INTEGER NOT NULL,
+                PRIMARY KEY(line, feature)) WITHOUT ROWID;
+            CREATE INDEX feature_lines ON edges(feature, line);
+        """)
+    except BaseException:
+        db.close()
+        raise
     return db
 
 
@@ -256,7 +261,7 @@ def select(source: BinaryIO, *, max_rows: int = 20, limits: Limits | None = None
             finally:
                 db.close()
     except sqlite3.DatabaseError as exc:
-        if (getattr(exc, "sqlite_errorcode", None) == sqlite3.SQLITE_FULL
+        if (getattr(exc, "sqlite_errorcode", None) == getattr(sqlite3, "SQLITE_FULL", 13)
                 or "database or disk is full" in str(exc)):
             raise ShapeWitnessError("limit", "temporary database is full (max_spool_bytes or available disk space)") from None
         raise ShapeWitnessError("storage", "temporary SQLite storage failed") from None

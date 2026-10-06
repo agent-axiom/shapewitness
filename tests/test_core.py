@@ -168,7 +168,8 @@ class ValidationTests(unittest.TestCase):
 
     def test_invalid_configuration(self):
         for limits in (replace(Limits(), max_depth=257), replace(Limits(), max_records=0),
-                       replace(Limits(), max_spool_bytes=10), replace(Limits(), max_features=True)):
+                       replace(Limits(), max_spool_bytes=10), replace(Limits(), max_features=True),
+                       replace(Limits(), max_line_bytes=10**100)):
             with self.assertRaises(ShapeWitnessError):
                 run(b'null', limits=limits)
         for budget in (-1, True, 100001):
