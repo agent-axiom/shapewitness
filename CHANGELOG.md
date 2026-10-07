@@ -10,7 +10,10 @@
 - Prepare wheel/sdist metadata checks, a package-index-friendly description, and a
   non-publishing release-readiness workflow. The OIDC alternative remains inactive.
 
-## 0.1.0
+## 0.1.0 — 2026-10-07
+
+Published to [PyPI](https://pypi.org/project/shapewitness/0.1.0/) from
+[tag v0.1.0](https://github.com/agent-axiom/shapewitness/releases/tag/v0.1.0).
 
 Initial implementation: deterministic greedy structural witness selection for JSONL;
 local missing-member coverage; strict UTF-8/JSON validation; byte-preserving output;

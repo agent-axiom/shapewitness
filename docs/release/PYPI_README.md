@@ -1,6 +1,7 @@
 # ShapeWitness
 
 [![CI](https://github.com/agent-axiom/shapewitness/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/agent-axiom/shapewitness/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/shapewitness.svg)](https://pypi.org/project/shapewitness/)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://github.com/agent-axiom/shapewitness/blob/main/pyproject.toml)
 [![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/agent-axiom/shapewitness/blob/main/LICENSE)
 [![Runtime dependencies: 0](https://img.shields.io/badge/Runtime_dependencies-0-success)](https://github.com/agent-axiom/shapewitness/blob/main/pyproject.toml)
@@ -17,19 +18,17 @@ each row was selected.
 
 ## Install
 
-Python 3.10+ with SQLite support. Install from a checkout:
+Python 3.10+ with SQLite support. [Available on PyPI](https://pypi.org/project/shapewitness/):
 
 ```sh
-python -m pip install .
+python -m pip install shapewitness
+# Isolated CLI alternatives:
+uvx shapewitness --help
+pipx install shapewitness
 ```
 
-Or directly from GitHub:
-
-```sh
-python -m pip install 'git+https://github.com/agent-axiom/shapewitness.git'
-```
-
-Pin a reviewed commit for reproducible source installations. See [release guidance](https://github.com/agent-axiom/shapewitness/blob/main/docs/release/README.md).
+For a source checkout, use `python -m pip install .`. Pin a version or reviewed
+commit for reproducibility. See [release guidance](https://github.com/agent-axiom/shapewitness/blob/main/docs/release/README.md).
 
 ## Ten-second demo
 
