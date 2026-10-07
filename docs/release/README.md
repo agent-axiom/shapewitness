@@ -1,23 +1,65 @@
-# Release readiness, without publishing
+# Releases and automatic publishing
 
 [Home](../../README.md) · [Development](../development.md)
 
-The repository builds release candidates and validates their metadata. It has not
-uploaded a package to PyPI or TestPyPI, created an account/token, configured a
-Trusted Publisher, or claimed a package namespace.
+The repository owner authorized automatic production-PyPI publishing from new stable
+version tags. The active [publishing workflow](../../.github/workflows/publish.yml)
+uses the existing GitHub Actions secret **PYPI_API_TOKEN**. It does not create a token,
+read one into developer tools, or configure a Trusted Publisher grant.
 
-## Current name check
+## Release contract
 
-On 2026-10-06, the official [PyPI JSON endpoint](https://pypi.org/pypi/shapewitness/json)
-returned HTTP 404. This means no visible project was returned at that moment; it is
-not a reservation or a guarantee that PyPI will accept the name. Recheck immediately
-before publishing. A pending publisher also does not reserve a name, as explained in
-[PyPI's project-creation guide](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/).
+A new tag such as `v0.1.0` triggers the release. Ordinary branch commits do not publish.
+Only strict `vMAJOR.MINOR.PATCH` tags without leading zeroes are accepted; prerelease
+suffixes, modified/force-moved tags, and deletion events are rejected.
 
-## Validate locally
+The first gate requires the checkout, tag target, and triggering event to identify
+the same immutable commit. That commit must belong to the fetched `main` history,
+and the package metadata name/version must match `shapewitness` and the tag.
 
-Use Python 3.12 for release tooling; the installed package supports Python 3.10+.
-Build into a new or empty directory so older artifacts cannot be uploaded by mistake.
+The exact commit passes Linux/Python 3.10, 3.12, 3.14, macOS, and Windows tests. A
+separate secretless job builds wheel/sdist, performs strict metadata validation,
+installs/tests the wheel, and runs recipes. Only then does the publishing job fetch
+the same immutable artifact ID and verify its source/version, file sizes, and SHA-256
+hashes. It has no source checkout and executes no code from those distributions.
+The secret is passed only to the PyPA publishing action, never to build/test steps.
+
+There is no manual dispatch, release checkbox, OIDC permission, or implicit GitHub
+environment. The tag push is the release action. Limit repository and version-tag
+write access to trusted maintainers; the ancestry check does not replace access controls.
+
+## Before tagging
+
+1. Review package metadata and the intended stable version.
+2. Wait for CI and Release readiness on the exact commit on `main`.
+3. Confirm the official PyPI name/version state. HTTP 404 alone does not reserve or
+   guarantee that a new name will be accepted.
+4. Create the new version tag at that commit, which must include the publisher.
+5. Monitor the publishing run, then verify the official PyPI files/hashes, clean
+   installation, and CLI behavior. A workflow artifact alone is not a release.
+
+Do not move a release tag or reuse a version to repair changed bytes. PyPI does not
+allow replacing an uploaded filename, even after deletion. Duplicate uploads fail
+loudly (`skip-existing: false`). If one file uploads and the other fails, inspect
+PyPI and compare the original artifact hashes before any retry. Do not blindly
+rebuild and re-upload a potentially partial release.
+
+## Token scope
+
+The owner enters **PYPI_API_TOKEN** directly in GitHub Actions secrets; it must never
+appear in chat, source, issues, or logs. A new project's first token-based upload
+needs an account-wide token. Restricting GitHub access to this repository does not
+reduce that token's PyPI privileges. After the first successful release, replace the
+secret with a token scoped only to `shapewitness` and revoke the bootstrap token
+before further release tags.
+
+The former [Trusted Publisher template](publish.yml.example) remains an inactive
+alternative. It is not used by the token workflow, and no OIDC grant is assumed.
+
+## Local release checks
+
+Use Python 3.12 for release tooling; the package supports Python 3.10+. Build into
+an empty output directory to keep earlier artifacts out of the candidate set.
 
 ```sh
 python -m pip install build==1.6.1 twine==7.0.0 pytest==9.1.1
@@ -28,63 +70,15 @@ python scripts/check_distribution.py dist
 python -m pip install --no-deps dist/shapewitness-0.1.0-py3-none-any.whl
 python -m unittest discover -s tests -v
 python -m pytest -q examples/recipes/pytest_fixtures.py
-python examples/recipes/etl_regression.py
-python examples/recipes/importer_bug_repro.py > repro.jsonl
 ```
 
-The package description is generated from the short README, with absolute GitHub
-links so it renders sensibly on a package index. After editing README, regenerate it
-with `python scripts/prepare_pypi_readme.py`. The metadata checker verifies the name,
-version, Python requirement, MIT license expression, zero runtime dependencies,
-console entry point, typed marker, and source-archive contents, then emits hashes.
+The package description is generated from the short README with absolute GitHub
+links. Regenerate with `python scripts/prepare_pypi_readme.py` after README changes.
+The [non-publishing readiness workflow](../../.github/workflows/release-readiness.yml)
+also checks wheel-based uvx/pipx execution and retains candidate artifacts for 14 days.
+It has no upload credential or publishing action.
 
-The [release-readiness workflow](../../.github/workflows/release-readiness.yml) also
-checks wheel-based `uvx` and `pipx` invocation and stores candidates as workflow
-artifacts for 14 days. It has read-only repository permissions and no upload-to-PyPI
-step or OIDC permission. An artifact is a candidate, not a published release.
-
-## Run without a PyPI release
-
-With a locally built wheel and the corresponding tools installed:
-
-```sh
-uvx --no-index --from dist/shapewitness-0.1.0-py3-none-any.whl shapewitness --version
-pipx run --no-cache --spec dist/shapewitness-0.1.0-py3-none-any.whl shapewitness --version
-```
-
-See the official [uv tools guide](https://docs.astral.sh/uv/guides/tools/) and
-[pipx documentation](https://pipx.pypa.io/stable/). Bare `uvx shapewitness` or
-`pipx install shapewitness` must not be advertised until the correct package is
-actually published and verified on PyPI.
-
-## Owner decisions before publishing
-
-1. Confirm which existing PyPI account will own the project, the public author
-   metadata, version, and final release commit. Do not share passwords or API tokens.
-2. Review and explicitly approve creating a Trusted Publisher binding and a protected
-   GitHub `pypi` environment. This establishes persistent publishing authority.
-3. On that account, configure a pending publisher with these exact fields:
-   - PyPI project: `shapewitness`
-   - GitHub owner: `agent-axiom`
-   - Repository: `shapewitness`
-   - Workflow filename: `publish.yml`
-   - Environment: `pypi`
-4. Configure the environment with the intended required reviewer and approved tag
-   restrictions. Verify those protections before enabling the publishing workflow.
-5. Review [the inactive template](publish.yml.example), then separately approve
-   placing it at `.github/workflows/publish.yml`. It obtains short-lived OIDC-based
-   upload credentials only in the publishing job; no stored API key is required.
-6. Update the release status text, regenerate the package README, verify all checks
-   on the chosen commit, and review artifact hashes. Create the approved version tag
-   and dispatch the manual workflow only after the release itself is authorized.
-7. Verify the official project/version, artifact hashes, installation, `uvx` and
-   `pipx` behavior, and CLI smoke test after upload. Only then announce availability.
-
-The template is deliberately inactive and performs no setup. TestPyPI is a separate
-service/account/publisher configuration; any test upload also needs an approved
-account and destination. PyPI names/releases can have reuse restrictions; confirm
-metadata before sending an irreversible public release.
-
-Official references: [adding publishers](https://docs.pypi.org/trusted-publishers/adding-a-publisher/),
-[publishing with OIDC](https://docs.pypi.org/trusted-publishers/using-a-publisher/),
-[TestPyPI](https://packaging.python.org/en/latest/guides/using-testpypi/).
+Official references: [GitHub tag triggers](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#push),
+[PyPI token scopes](https://pypi.org/help/#apitoken),
+[filename reuse](https://pypi.org/help/#file-name-reuse),
+[PyPA's publishing action](https://github.com/pypa/gh-action-pypi-publish).

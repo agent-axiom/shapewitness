@@ -61,9 +61,9 @@ class DescriptionTests(unittest.TestCase):
         self.assertEqual(generator.rendered(), generator.TARGET.read_text(encoding='utf-8'))
         self.assertLess(len((ROOT / 'README.md').read_text().splitlines()), 100)
 
-    def test_publish_template_is_inactive(self):
+    def test_readiness_cannot_publish(self):
         self.assertTrue((ROOT / 'docs/release/publish.yml.example').exists())
-        self.assertFalse((ROOT / '.github/workflows/publish.yml').exists())
+        self.assertTrue((ROOT / '.github/workflows/publish.yml').exists())
         readiness = (ROOT / '.github/workflows/release-readiness.yml').read_text()
         self.assertNotIn('id-token:', readiness)
         self.assertNotIn('gh-action-pypi-publish', readiness)

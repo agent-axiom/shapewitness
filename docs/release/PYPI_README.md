@@ -29,7 +29,7 @@ Or directly from GitHub:
 python -m pip install 'git+https://github.com/agent-axiom/shapewitness.git'
 ```
 
-Pin a reviewed commit for reproducible installations. No PyPI release is published.
+Pin a reviewed commit for reproducible source installations. See [release guidance](https://github.com/agent-axiom/shapewitness/blob/main/docs/release/README.md).
 
 ## Ten-second demo
 

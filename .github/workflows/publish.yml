@@ -1,0 +1,262 @@
+# Version-tag publishing approved by the repository owner.
+name: Publish version tag
+on:
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: read
+concurrency:
+  group: shapewitness-production-pypi
+  cancel-in-progress: false
+  queue: max
+jobs:
+  validate:
+    if: >-
+      github.repository == 'agent-axiom/shapewitness' &&
+      github.event_name == 'push' && github.event.created &&
+      !github.event.deleted && !github.event.forced
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.identity.outputs.version }}
+      source_commit: ${{ steps.identity.outputs.source_commit }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Verify tag, exact commit, main ancestry, and version
+        id: identity
+        env:
+          RELEASE_REF: ${{ github.ref }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: |
+          python - . "$RELEASE_REF" "$RELEASE_COMMIT" > release-identity.json <<'PY'
+          # INLINED_TAG_VALIDATOR_START
+          """Check stable tag, event commit, main ancestry and metadata. Python 3.11+."""
+          import argparse
+          import json
+          import re
+          import subprocess
+          from pathlib import Path
+          
+          TAG_PATTERN = r'refs/tags/v((?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))'
+          
+          
+          def validate(repo, ref, event_sha):
+              import tomllib
+              match = re.fullmatch(TAG_PATTERN, ref)
+              if not match:
+                  raise ValueError('Expected a stable vMAJOR.MINOR.PATCH tag without leading zeroes')
+              if not re.fullmatch(r'[0-9a-f]{40}', event_sha):
+                  raise ValueError('Expected a full lowercase event commit SHA')
+              def git(*args):
+                  return subprocess.check_output(['git', '-C', str(repo), *args], text=True).strip()
+              head = git('rev-parse', '--verify', 'HEAD^{commit}')
+              tag = git('rev-parse', '--verify', ref + '^{commit}')
+              if head != event_sha or tag != event_sha:
+                  raise ValueError('Checkout, tag and event must identify the same commit')
+              main = git('rev-parse', '--verify', 'refs/remotes/origin/main^{commit}')
+              ancestry = subprocess.run(['git', '-C', str(repo), 'merge-base', '--is-ancestor', head, main],
+                                        capture_output=True, text=True)
+              if ancestry.returncode != 0:
+                  raise ValueError('Release commit is not on the fetched main history')
+              with (repo / 'pyproject.toml').open('rb') as source:
+                  project = tomllib.load(source)['project']
+              version = match[1]
+              if project.get('name') != 'shapewitness' or project.get('version') != version:
+                  raise ValueError('Tag and package name/version do not match')
+              return {'version': version, 'source_commit': head, 'main_commit': main}
+          
+          
+          def main():
+              parser = argparse.ArgumentParser(description=__doc__)
+              parser.add_argument('repository', type=Path)
+              parser.add_argument('tag_ref')
+              parser.add_argument('event_sha')
+              args = parser.parse_args()
+              print(json.dumps(validate(args.repository, args.tag_ref, args.event_sha), sort_keys=True))
+          
+          
+          if __name__ == '__main__':
+              main()
+          # INLINED_TAG_VALIDATOR_END
+          PY
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          identity = json.loads(Path('release-identity.json').read_text())
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as target:
+              target.write('version=' + identity['version'] + '\n')
+              target.write('source_commit=' + identity['source_commit'] + '\n')
+          PY
+  test:
+    needs: validate
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: '3.10'
+          - os: ubuntu-latest
+            python: '3.12'
+          - os: ubuntu-latest
+            python: '3.14'
+          - os: windows-latest
+            python: '3.12'
+          - os: macos-latest
+            python: '3.12'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.validate.outputs.source_commit }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install --no-deps .
+      - run: python -m unittest discover -s tests -v
+      - run: python -m compileall -q src tests
+      - run: shapewitness examples/events.jsonl -n 4 --require-complete --status json
+  build:
+    needs: [validate, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      artifact_id: ${{ steps.release_artifact.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.validate.outputs.source_commit }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - run: python -m pip install build==1.6.1 twine==7.0.0 pytest==9.1.1
+      - run: python scripts/prepare_pypi_readme.py --check
+      - run: python -m build --outdir dist
+      - run: python -m twine check --strict dist/*
+      - run: python scripts/check_distribution.py dist > release-manifest.json
+      - name: Bind distribution hashes to the validated source
+        env:
+          RELEASE_COMMIT: ${{ needs.validate.outputs.source_commit }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path('release-manifest.json')
+          manifest = json.loads(path.read_text())
+          manifest['source_commit'] = os.environ['RELEASE_COMMIT']
+          path.write_text(json.dumps(manifest, sort_keys=True, indent=2) + '\n')
+          PY
+      - run: python -m pip install --no-deps dist/*.whl
+      - run: python -m unittest discover -s tests -v
+      - run: python -m pytest -q examples/recipes/pytest_fixtures.py
+      - run: python examples/recipes/etl_regression.py
+      - run: python examples/recipes/importer_bug_repro.py > /tmp/repro.jsonl
+      - name: Ensure tests did not change the validated artifacts
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+          RELEASE_COMMIT: ${{ needs.validate.outputs.source_commit }}
+        run: python scripts/verify_release_manifest.py . "$RELEASE_VERSION" "$RELEASE_COMMIT"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        id: release_artifact
+        with:
+          name: shapewitness-${{ needs.validate.outputs.version }}-${{ needs.validate.outputs.source_commit }}
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+            release-manifest.json
+          if-no-files-found: error
+          retention-days: 14
+  publish:
+    needs: [validate, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact_id }}
+          path: release-artifact
+      - name: Verify exact distributions without executing their contents
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+          RELEASE_COMMIT: ${{ needs.validate.outputs.source_commit }}
+        run: |
+          python - release-artifact "$RELEASE_VERSION" "$RELEASE_COMMIT" <<'PY'
+          # INLINED_VERIFIER_START
+          """Verify the exact two validated distribution files without executing them."""
+          import argparse
+          import hashlib
+          import json
+          import re
+          from pathlib import Path
+          
+          
+          def verify(root, version, commit):
+              if not re.fullmatch(r'(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)', version):
+                  raise ValueError('Expected a stable three-component version')
+              if not re.fullmatch(r'[0-9a-f]{40}', commit):
+                  raise ValueError('Expected a full lowercase commit SHA')
+              manifest_path = root / 'release-manifest.json'
+              if manifest_path.is_symlink() or manifest_path.stat().st_size > 65536:
+                  raise ValueError('Invalid release manifest file')
+              manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+              if (manifest.get('package') != 'shapewitness' or manifest.get('version') != version
+                      or manifest.get('source_commit') != commit):
+                  raise ValueError('Release identity does not match the tag')
+              expected = {f'shapewitness-{version}-py3-none-any.whl', f'shapewitness-{version}.tar.gz'}
+              artifacts = manifest.get('artifacts', [])
+              if len(artifacts) != 2 or {entry.get('filename') for entry in artifacts} != expected:
+                  raise ValueError('Expected exactly the validated wheel and source archive')
+              dist = root / 'dist'
+              if dist.is_symlink() or {p.name for p in dist.iterdir()} != expected:
+                  raise ValueError('Unexpected files in the publishing directory')
+              for entry in artifacts:
+                  path = dist / entry['filename']
+                  if (path.is_symlink() or not path.is_file() or
+                          path.stat().st_size != entry.get('bytes') or path.stat().st_size > 64 * 1024 * 1024):
+                      raise ValueError('Distribution size/type does not match the manifest')
+                  digest = hashlib.sha256()
+                  with path.open('rb') as source:
+                      for chunk in iter(lambda: source.read(1024 * 1024), b''):
+                          digest.update(chunk)
+                  if digest.hexdigest() != entry.get('sha256'):
+                      raise ValueError('Distribution digest does not match the validated artifact')
+              return manifest
+          
+          
+          def main():
+              parser = argparse.ArgumentParser(description=__doc__)
+              parser.add_argument('directory', type=Path)
+              parser.add_argument('version')
+              parser.add_argument('commit')
+              args = parser.parse_args()
+              verify(args.directory, args.version, args.commit)
+              print(f'Verified exact distribution bytes: shapewitness {args.version} at {args.commit}')
+          
+          
+          if __name__ == '__main__':
+              main()
+          # INLINED_VERIFIER_END
+          PY
+      - name: Check that the owner configured the upload secret
+        env:
+          HAS_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN != '' }}
+        run: test "$HAS_PYPI_TOKEN" = true || { echo 'PYPI_API_TOKEN is not configured'; exit 1; }
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          repository-url: https://upload.pypi.org/legacy/
+          packages-dir: release-artifact/dist/
+          attestations: false
+          skip-existing: false
+          print-hash: true

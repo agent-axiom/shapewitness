@@ -8,7 +8,7 @@ dist/
 .coverage.*
 htmlcov/
 .release-venv/
-.release-dist/
+.release-dist*/
 .recipe-output/
 .pytest_cache/
 .launch-drafts/
