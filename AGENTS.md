@@ -19,6 +19,7 @@ pytest recipe have separate development dependencies.
 - `tests/test_core.py`: edge cases, limit failures, seeded independent feature/selection oracle
 - `tests/test_cli.py`: process-level interface, output safety, hash-seed determinism
 - `tests/test_resources.py`: Linux-only bounded-address-space smoke test
+- `tests/integration/`: optional sqlite-utils/dlt checks, separate from core discovery
 - `examples/`: synthetic input, reproducible outputs, and runnable recipes
 - `scripts/`: benchmark, package-description generation, and local distribution checks
 - `docs/release/`: release checklist and an inactive publisher template

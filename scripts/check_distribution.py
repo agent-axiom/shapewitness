@@ -46,6 +46,9 @@ def inspect(directory):
         for required in ('LICENSE', 'AGENTS.md', 'README.md', 'docs/release/PYPI_README.md',
                          'docs/release/publish.yml.example', 'src/shapewitness/core.py',
                          'examples/recipes/pytest_fixtures.py', 'tests/test_core.py',
+                         'examples/integrations/orders.jsonl',
+                         'examples/recipes/importer_regression.py', 'examples/recipes/dlt_import.py',
+                         'tests/integration/test_importers.py', 'tests/integration/requirements.txt',
                          'scripts/compare_sampling.py', 'benchmarks/synthetic.jsonl'):
             assert prefix + required in names, f'Missing sdist member: {required}'
         assert not any('/.venv/' in path or '/.release-venv/' in path or '/.git/' in path for path in names)

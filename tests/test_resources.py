@@ -1,7 +1,31 @@
 """A bounded-process smoke test, not a benchmark or universal memory guarantee."""
 import subprocess
 import sys
+import tracemalloc
 import unittest
+from dataclasses import replace
+
+from shapewitness import Limits, ShapeWitnessError
+from shapewitness.core import _walk
+
+
+class TraversalResourceTests(unittest.TestCase):
+    def test_wide_container_checks_node_limit_without_expanding_siblings(self):
+        # The decoded value is deliberately allocated before tracing: this
+        # measures traversal overhead, not total parsing or process memory.
+        for value in ([None] * 100_000, {str(i): None for i in range(50_000)}):
+            with self.subTest(container=type(value).__name__):
+                tracemalloc.start()
+                try:
+                    with self.assertRaises(ShapeWitnessError) as error:
+                        list(_walk(value, replace(Limits(), max_nodes_per_record=2), 1))
+                    _, peak = tracemalloc.get_traced_memory()
+                finally:
+                    tracemalloc.stop()
+                self.assertEqual(error.exception.code, 'limit')
+                self.assertEqual(error.exception.line, 1)
+                self.assertIn('max_nodes_per_record', str(error.exception))
+                self.assertLess(peak, 1024 * 1024)
 
 
 @unittest.skipUnless(sys.platform.startswith('linux'), 'Linux address-space limit test')

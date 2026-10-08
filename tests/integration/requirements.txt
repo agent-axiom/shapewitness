@@ -1,0 +1,4 @@
+# Optional real-importer checks. These are not ShapeWitness runtime dependencies.
+sqlite-utils==4.2.1
+dlt[duckdb]==1.31.0
+duckdb==1.5.6

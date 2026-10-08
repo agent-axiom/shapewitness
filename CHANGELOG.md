@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Add executable sqlite-utils and dlt/DuckDB regression recipes with pinned optional
+  development dependencies, source-byte verification, real schema/value comparisons,
+  and counterexamples where complete structural coverage loses importer behavior.
+- Exercise the optional importer suite in a separate CI job; runtime and core tests
+  remain standard-library-only.
+- Walk wide objects/arrays lazily so traversal bookkeeping is bounded by nesting
+  depth and node limits are checked before expanding siblings. Selection, report
+  format, and feature semantics are unchanged.
+
 ## Release automation
 
 - New stable version tags run cross-platform verification and publish the same
