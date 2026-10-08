@@ -15,6 +15,9 @@ or dependency on locale, wall-clock time, or a random generator.
 2. A lexical nesting check runs before `json.loads`. Numeric callbacks produce a
    type marker rather than computing an arbitrary numeric value. Duplicate object
    keys and non-finite constants fail. Values remain in memory only for traversal.
+   Lazy child iterators keep traversal bookkeeping O(nesting depth); wide objects
+   and arrays do not allocate a second stack entry/path for every sibling before
+   the node limit is checked. The parsed line itself is still materialized.
 3. Each original line is copied into a private SQLite spool, alongside physical
    line and offset. The first pass collects observed object-member vocabularies.
 4. A second spool pass builds exact row/feature edges. This is necessary because a

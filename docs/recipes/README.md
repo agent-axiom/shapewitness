@@ -9,7 +9,10 @@ committing fixtures or sharing bug reports; the tool does not redact anything.
 1. [Pytest fixtures](pytest-fixtures.md): generate a structural fixture and retain its provenance
 2. [ETL regression](etl-regression.md): compare a reviewed transformation result against a golden output
 3. [Importer bug reproduction](importer-bug-repro.md): turn a selected failing row into an exact repro
+4. [sqlite-utils and dlt](real-importers.md): execute full and reduced inputs, compare
+   retained behavior, and test cases where structural coverage is insufficient
 
-All three examples are exercised by the release-readiness workflow. The pytest
-recipe alone needs pytest; ShapeWitness itself and its core test suite remain
+The first three examples are exercised by the release-readiness workflow. The
+pytest recipe needs pytest. The real-importer recipe has a separate CI job with
+pinned optional dependencies; ShapeWitness and its core tests remain
 standard-library-only.

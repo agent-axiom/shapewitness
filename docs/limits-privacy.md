@@ -34,7 +34,10 @@ must be between zero and the configured record cap.
 The input is not held entirely in RAM. One decoded line, the bounded observed
 vocabulary, SQLite's cache (8 MiB target), and the selected result/report reside in
 memory. Raw rows and feature incidence live in a private temporary SQLite database.
-Memory also depends on Python object overhead, per-line fanout, and report size;
+Traversal uses one lazy iterator per active ancestor, so its sibling bookkeeping
+does not grow with a wide array/object before enforcing the node limit. Parsing
+still allocates the decoded line. Memory also depends on Python object overhead,
+per-line fanout, and report size;
 these are **not an exact RSS limit**. SQLite may use extra transient storage beyond
 the main-file cap, and free disk space is still required. Use OS/container limits
 when processing hostile input or when a hard process/disk quota is required.

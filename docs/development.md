@@ -19,6 +19,13 @@ builds/installs the package. Tests include a seeded independent feature oracle,
 greedy-choice verification, cross-hash-seed determinism, precision-preserving bytes,
 strict failures, nested missing semantics, provenance, and resource-bound checks.
 
+The separate `importers` CI job installs the pinned packages in
+`tests/integration/requirements.txt` and runs
+`python -m unittest discover -s tests/integration -v`. These tests use actual
+sqlite-utils CLI imports and local dlt/DuckDB pipelines on synthetic data, including
+negative cases. They are deliberately outside dependency-free core discovery.
+See the [real-importer recipe](recipes/real-importers.md) for runnable examples.
+
 See [architecture](architecture.md), [contributing](../CONTRIBUTING.md), and
 [security guidance](../SECURITY.md). MIT licensed. Version 0.1 is an initial release;
 report/feature semantics are versioned and may evolve in future releases.

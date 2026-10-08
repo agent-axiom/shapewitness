@@ -153,10 +153,32 @@ def _path_json(path: Path) -> str:
 
 
 def _walk(value: Any, limits: Limits, line: int) -> Iterator[tuple[Path, Any]]:
-    stack = [((), value)]
+    def children(path: Path, node: Any) -> Iterator[tuple[Path, Any]]:
+        # Preserve the existing reverse-child traversal without constructing a
+        # path/stack entry for every sibling before the node limit is checked.
+        if isinstance(node, dict):
+            for key, child in reversed(node.items()):
+                try:
+                    _check_string(key)
+                except ShapeWitnessError as exc:
+                    exc.line = line
+                    raise
+                yield path + (key,), child
+        elif isinstance(node, list):
+            for child in reversed(node):
+                yield path + (None,), child
+
+    # One iterator per active ancestor: traversal overhead scales with nesting,
+    # rather than the width of a single object or array. Parsing still allocates
+    # the decoded line, as documented by the input/resource contract.
+    stack = [iter((((), value),))]
     nodes = 0
     while stack:
-        path, node = stack.pop()
+        try:
+            path, node = next(stack[-1])
+        except StopIteration:
+            stack.pop()
+            continue
         nodes += 1
         if nodes > limits.max_nodes_per_record:
             _fail_limit("max_nodes_per_record", line)
@@ -169,16 +191,8 @@ def _walk(value: Any, limits: Limits, line: int) -> Iterator[tuple[Path, Any]]:
                 exc.line = line
                 raise
         yield path, node
-        if isinstance(node, dict):
-            for key, child in node.items():
-                try:
-                    _check_string(key)
-                except ShapeWitnessError as exc:
-                    exc.line = line
-                    raise
-                stack.append((path + (key,), child))
-        elif isinstance(node, list):
-            stack.extend((path + (None,), child) for child in node)
+        if isinstance(node, (dict, list)):
+            stack.append(children(path, node))
 
 
 def _kind(value: Any) -> str:
