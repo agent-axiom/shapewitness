@@ -26,8 +26,12 @@ jobs:
       - run: python -m pytest -q examples/recipes/pytest_fixtures.py
       - run: python examples/recipes/etl_regression.py
       - run: python examples/recipes/importer_bug_repro.py > /tmp/repro.jsonl
-      - run: uvx --no-index --from dist/shapewitness-0.1.0-py3-none-any.whl shapewitness --version
-      - run: pipx run --no-cache --spec dist/shapewitness-0.1.0-py3-none-any.whl shapewitness --version
+      - run: python -m pip install -r tests/integration/requirements.txt
+      - run: python -m unittest discover -s tests/integration -v
+      - run: python examples/recipes/importer_regression.py sqlite-utils
+      - run: python examples/recipes/importer_regression.py dlt
+      - run: uvx --no-index --from dist/*.whl shapewitness --version
+      - run: pipx run --no-cache --spec dist/*.whl shapewitness --version
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: shapewitness-release-candidates

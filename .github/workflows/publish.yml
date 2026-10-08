@@ -161,6 +161,10 @@ jobs:
       - run: python -m pytest -q examples/recipes/pytest_fixtures.py
       - run: python examples/recipes/etl_regression.py
       - run: python examples/recipes/importer_bug_repro.py > /tmp/repro.jsonl
+      - run: python -m pip install -r tests/integration/requirements.txt
+      - run: python -m unittest discover -s tests/integration -v
+      - run: python examples/recipes/importer_regression.py sqlite-utils
+      - run: python examples/recipes/importer_regression.py dlt
       - name: Ensure tests did not change the validated artifacts
         env:
           RELEASE_VERSION: ${{ needs.validate.outputs.version }}

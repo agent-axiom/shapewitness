@@ -14,6 +14,8 @@ import tempfile
 from dataclasses import asdict, dataclass
 from typing import Any, BinaryIO, Iterator
 
+from ._version import __version__
+
 # A path segment is a member name, or None for any array element. Unlike dotted
 # paths, this distinguishes a literal key "*" from an array wildcard.
 Path = tuple[str | None, ...]
@@ -378,7 +380,7 @@ def _select(db: sqlite3.Connection, source: BinaryIO, max_rows: int, limits: Lim
                    else "output_byte_budget")
     report = {
         "format_version": 1,
-        "tool_version": "0.1.0",
+        "tool_version": __version__,
         "algorithm": "greedy-new-features-first-line-tiebreak-v1",
         "input": {"sha256": input_hash.hexdigest(), "bytes": total_bytes,
                   "physical_lines": total_lines, "records": records, "skipped_blank_lines": skipped},

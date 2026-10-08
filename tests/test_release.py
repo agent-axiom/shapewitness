@@ -140,7 +140,34 @@ class TagTests(unittest.TestCase):
         self.assertEqual(TAG.validate(self.repo, 'refs/tags/v0.1.0', self.head)['main_commit'], main)
 
 
+@unittest.skipIf(sys.version_info < (3, 11), 'Distribution inspection uses tomllib')
+class DistributionVersionTests(unittest.TestCase):
+    def test_literal_version_is_read_without_importing(self):
+        reader = load('check_distribution').literal_version
+        self.assertEqual(reader('"""Version."""\n__version__ = "0.1.1"\n'), '0.1.1')
+
+    def test_executable_or_ambiguous_version_source_is_rejected(self):
+        reader = load('check_distribution').literal_version
+        for source in ('__version__ = str(1)', '__version__ = 1',
+                       '__version__ = "0.1.1"\n__version__ = "0.1.2"',
+                       '__version__ = "0.1.1"\n__version__ += "x"',
+                       '__version__ = "0.1.1"\nimport os', 'other = "0.1.1"'):
+            with self.subTest(source=source), self.assertRaises(ValueError):
+                reader(source)
+
+
 class PublisherTests(unittest.TestCase):
+    def test_candidate_checks_are_version_independent_and_include_importers(self):
+        readiness = (ROOT / '.github/workflows/release-readiness.yml').read_text()
+        self.assertNotIn('shapewitness-0.1.0', readiness)
+        self.assertIn('uvx --no-index --from dist/*.whl', readiness)
+        self.assertIn('pipx run --no-cache --spec dist/*.whl', readiness)
+        publisher = (ROOT / '.github/workflows/publish.yml').read_text().split('\n  publish:\n')[0]
+        for workflow in (readiness, publisher):
+            self.assertIn('python -m unittest discover -s tests/integration -v', workflow)
+            self.assertIn('python examples/recipes/importer_regression.py sqlite-utils', workflow)
+            self.assertIn('python examples/recipes/importer_regression.py dlt', workflow)
+
     def test_inlined_checks_match_helpers(self):
         text = (ROOT / '.github/workflows/publish.yml').read_text()
         for marker, filename in [('TAG_VALIDATOR', 'validate_release_tag'), ('VERIFIER', 'verify_release_manifest')]:
