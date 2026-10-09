@@ -17,7 +17,7 @@ def verify(root, version, commit):
     manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
     if (manifest.get('package') != 'shapewitness' or manifest.get('version') != version
             or manifest.get('source_commit') != commit):
-        raise ValueError('Release identity does not match the tag')
+        raise ValueError('Release identity does not match the validated source')
     expected = {f'shapewitness-{version}-py3-none-any.whl', f'shapewitness-{version}.tar.gz'}
     artifacts = manifest.get('artifacts', [])
     if len(artifacts) != 2 or {entry.get('filename') for entry in artifacts} != expected:

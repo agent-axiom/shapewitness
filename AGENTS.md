@@ -51,4 +51,4 @@ shapewitness examples/events.jsonl -n 4 --require-complete --status json
 Add a regression test for each bug fix. For changed selection/report behavior,
 reproduce and review both committed example artifacts. Run packaging checks for
 metadata/build changes; see [development](docs/development.md). Check CI on the
-exact pushed commit. Publishing a registry release is a separate maintainer action.
+exact pushed commit. A version increase merged into main publishes automatically after both CI workflows pass; see the release contract.
