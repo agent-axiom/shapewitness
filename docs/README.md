@@ -4,7 +4,7 @@
 
 ## Use the tool
 
-- [Usage](usage.md): CLI workflows, exit codes, failure examples, Python API
+- [Usage and structural comparison](usage.md): CLI workflows, exit codes, failure examples, Python API
 - [Feature model](feature-model.md): path notation, local missing-member semantics, greedy selection
 - [Provenance](provenance.md): exact bytes, SHA-256, report fields, verification boundaries
 - [Limits and privacy](limits-privacy.md): strict JSONL contract, every default cap, memory/disk behavior, sensitive outputs

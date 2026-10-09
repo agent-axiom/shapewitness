@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Compare full baseline/current observed inventories by path and kind with
+  `compare_reports`, `--baseline`, and a separate `--comparison-report` artifact.
+  `--require-unchanged` exits 4 on added or removed features. Unknown report
+  formats and different numeric models fail closed before output.
+- Keep default selection and coverage-report formats unchanged. Fix outdated
+  documentation about the already published numeric-syntax option.
+
 ## 0.1.2 — 2026-10-09
 
 - Add opt-in `--number-mode syntax` / `number_mode="syntax"` to distinguish

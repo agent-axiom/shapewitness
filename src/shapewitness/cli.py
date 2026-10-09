@@ -12,6 +12,7 @@ from typing import Any, Sequence
 
 from . import __version__
 from .core import Limits, ShapeWitnessError, select
+from .comparison import compare_reports, read_report
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -23,6 +24,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--report", help="create a deterministic JSON coverage/provenance report")
     parser.add_argument("--status", choices=("human", "json", "quiet"), default="human", help="stderr status format")
     parser.add_argument("--require-complete", action="store_true", help="exit 3 if the selected rows leave observed features uncovered")
+    parser.add_argument("--baseline", help="compare the full observed inventory with this saved coverage report")
+    parser.add_argument("--comparison-report", help="create a separate structural comparison JSON report (requires --baseline)")
+    parser.add_argument("--require-unchanged", action="store_true", help="exit 4 on added/removed observed features (requires --baseline)")
     parser.add_argument("--skip-blank-lines", action="store_true", help="explicitly ignore blank lines (default: reject)")
     parser.add_argument("--number-mode", choices=("json", "syntax"), default="json",
                         help="group numbers (json, default), or distinguish integer and fractional/exponent syntax (report format 2)")
@@ -49,20 +53,27 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         limits = Limits(**{field.name: getattr(args, field.name) for field in fields(Limits)})
         limits.validate()
+        if (args.comparison_report or args.require_unchanged) and not args.baseline:
+            raise ShapeWitnessError("configuration", "comparison-report and require-unchanged require baseline")
         # Reject collisions before consuming stdin; do not overwrite input,
         # existing artifacts, symlinks, or a second output path alias.
-        destinations = [Path(p) for p in (args.output, args.report) if p]
+        destinations = [Path(p) for p in (args.output, args.report, args.comparison_report) if p]
         resolved = [p.resolve() for p in destinations]
         if len(set(resolved)) != len(resolved):
-            raise ShapeWitnessError("output_exists", "output and report must be different paths")
+            raise ShapeWitnessError("output_exists", "output paths must be different")
         for destination in destinations:
             if os.path.lexists(destination):
                 raise ShapeWitnessError("output_exists", "an output path already exists; choose a new path")
+        baseline = None
+        if args.baseline:
+            with open(args.baseline, "rb") as source:
+                baseline = read_report(source)
         with ExitStack() as stack:
             source = sys.stdin.buffer if args.input == "-" else stack.enter_context(open(args.input, "rb"))
             result = select(source, max_rows=args.max_rows, limits=limits,
                             skip_blank_lines=args.skip_blank_lines, temp_dir=args.temp_dir,
                             number_mode=args.number_mode)
+        comparison = compare_reports(baseline, result.report) if baseline is not None else None
         # Input/limit failures never emit data or create outputs. Exclusive open
         # prevents clobbering files created by another process after our check.
         # If an I/O failure occurs while writing, a partial output can remain.
@@ -76,15 +87,28 @@ def main(argv: Sequence[str] | None = None) -> int:
             with open(args.report, "x", encoding="utf-8", newline="\n") as target:
                 json.dump(result.report, target, ensure_ascii=True, indent=2, sort_keys=True)
                 target.write("\n")
+        if args.comparison_report:
+            with open(args.comparison_report, "x", encoding="utf-8", newline="\n") as target:
+                json.dump(comparison, target, ensure_ascii=True, indent=2, sort_keys=True)
+                target.write("\n")
         coverage = result.report["coverage"]
         summary = {"ok": True, "input_records": result.report["input"]["records"],
                    "selected_rows": len(result.rows), **coverage,
                    "stop_reason": result.report["selection"]["stop_reason"]}
+        drift = ""
+        if comparison is not None:
+            summary["comparison"] = {"changed": comparison["changed"],
+                                     "added_features": len(comparison["added_features"]),
+                                     "removed_features": len(comparison["removed_features"])}
+            drift = (f"; +{summary['comparison']['added_features']} / "
+                     f"-{summary['comparison']['removed_features']} observed features")
         _status(args.status, summary,
                 f"shapewitness: {len(result.rows)}/{summary['input_records']} rows; "
                 f"{coverage['covered_features']}/{coverage['observed_features']} observed features; "
-                f"{summary['stop_reason']}")
-        return 3 if args.require_complete and not coverage["complete"] else 0
+                f"{summary['stop_reason']}{drift}")
+        if args.require_complete and not coverage["complete"]:
+            return 3
+        return 4 if args.require_unchanged and comparison["changed"] else 0
     except ShapeWitnessError as exc:
         error = {"ok": False, "error": exc.as_dict()}
         at = f" on line {exc.line}" if exc.line else ""

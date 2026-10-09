@@ -8,7 +8,7 @@ Integers and fractional/exponent numbers share the `number` kind.
 
 ### Optional numeric-syntax coverage
 
-This option is available in the source checkout, not in the published 0.1.1 package.
+Available since the published 0.1.2 release.
 
 Use `--number-mode syntax` (Python: `select(source, number_mode="syntax")`) when
 integer versus fractional/exponent syntax matters to an importer. It replaces the

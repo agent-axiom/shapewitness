@@ -41,6 +41,7 @@ Never redirect output onto the input file.
 - **1**: the downstream output pipe closed
 - **2**: invalid input, invalid arguments, resource limit, or I/O failure
 - **3**: successful selection with uncovered features under `--require-complete`
+- **4**: observed inventory changed under `--require-unchanged` (source checkout)
 - **130**: interrupted
 
 Status belongs to stderr; stdout contains JSONL only. `--status json` provides a
@@ -56,6 +57,61 @@ printf '{"id":1,"id":2}\n' | shapewitness             # exit 2: duplicate_key
 printf '{}\n\n' | shapewitness                        # exit 2: blank_line
 shapewitness examples/events.jsonl -n 2 --require-complete
 # exit 3: 14/19 features covered; the two selected rows are still emitted
+```
+
+## Compare a structural baseline
+
+The comparison API and flags below are available in this source checkout, pending
+release. Install a reviewed commit rather than expecting them in PyPI 0.1.2.
+
+```sh
+# Capture the full observed inventory without selecting rows.
+shapewitness baseline.jsonl -n 0 --report baseline.json --status quiet
+# Compare another export; emit the full inventory and a separate delta artifact.
+shapewitness current.jsonl -n 0 --baseline baseline.json --require-unchanged \
+  --report current.json --comparison-report delta.json --status json
+```
+
+`--baseline` compares all observed features, including those left uncovered by the
+selection budget. `--require-unchanged` exits **4** if any feature was added or
+removed. Without that flag, changes are reported but do not fail the command.
+Exit 3 takes precedence if both `--require-complete` and `--require-unchanged` fail.
+Both gate failures still write their outputs. `--comparison-report` and
+`--require-unchanged` require `--baseline`.
+
+The ordinary coverage report is unchanged. The separate delta report has its own
+`format_version: 1`, `comparison_model: "observed-structure-diff-v1"`, the shared
+feature model, both input SHA-256 hashes, sorted `added_features` and
+`removed_features` lists, an `unchanged_features` count, and a `changed` boolean.
+Each listed feature contains only `path` and `kind`. Report-local feature IDs and
+selection coverage are never used as identities. With a baseline, JSON stderr also
+has a `comparison` summary with `changed` and added/removed counts.
+
+Supported inputs are default format-1 reports (implicit `json-structure-v1`) and
+syntax-mode format-2 reports (`json-structure-number-syntax-v1`). The two models
+cannot be compared with each other, even if neither input contains numbers.
+Unknown formats, conflicting model metadata, duplicate/malformed feature entries,
+invalid hashes/counts, or malformed JSON fail with exit 2 before any output. The CLI
+limits a baseline report to 16 MiB. Python's `read_report` accepts an explicit
+`max_bytes=`. Inventory checks do not authenticate a saved report or validate its
+row provenance. Keep baselines under review in source control.
+
+Missing-member features use each input's own observed key vocabulary: a new key
+can add both its type and `missing` for unchanged older rows. Added/removed features
+are observed structural changes, not schema violations. Equal inventories can still
+hide changes in values, frequency, array lengths, combinations, and importer behavior.
+A changed input hash with an unchanged inventory is normal. Review intended changes
+before replacing a baseline; keep application assertions as a separate CI check.
+
+```python
+from shapewitness import compare_reports, read_report, select
+
+with open("baseline.json", "rb") as source:
+    baseline = read_report(source)
+with open("current.jsonl", "rb") as source:
+    current = select(source, max_rows=0)
+delta = compare_reports(baseline, current.report)
+assert not delta["changed"], delta  # Contains property names; review before sharing.
 ```
 
 ## Python API
