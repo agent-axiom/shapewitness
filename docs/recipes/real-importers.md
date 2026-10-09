@@ -18,6 +18,8 @@ python -m pip install --no-deps .
 python -m pip install -r tests/integration/requirements.txt
 python examples/recipes/importer_regression.py sqlite-utils
 python examples/recipes/importer_regression.py dlt
+python examples/recipes/importer_regression.py sqlite-utils --number-mode syntax
+python examples/recipes/importer_regression.py dlt --number-mode syntax
 python -m unittest discover -s tests/integration -v
 ```
 
@@ -76,6 +78,30 @@ that inference:
 2. **Cross-row constraints:** two otherwise same-shaped records with the same primary
    key fail the full sqlite-utils import. A structurally complete one-row witness
    succeeds and therefore does not reproduce the original failure.
+
+### Opt into numeric-syntax witnesses
+
+`--number-mode syntax` distinguishes integer tokens from tokens with a fraction or
+exponent. The optional suite verifies that reducing three rows with amounts `1`,
+`1.5`, and `2` to the first two now preserves sqlite-utils' batch-inferred `REAL`
+column and dlt's `amount__v_double` variant. It compares schemas, retained values,
+and SQLite storage classes using real imports. Integral exponent syntax (`1e0`)
+is tested too: sqlite-utils infers `REAL`, while dlt coerces it to the existing
+integer column. Existing default-mode counterexamples remain in the suite.
+
+The [comparison recipe](../../examples/recipes/importer_regression.py) accepts the
+same option. In Python, use `select(source, number_mode="syntax")`. This is an
+explicit feature-model change with report format 2; see
+[numeric-syntax coverage](../feature-model.md#optional-numeric-syntax-coverage).
+
+It is still possible to lose failures: a new regression shows a full sqlite-utils
+import failing on an integer above SQLite's signed 64-bit range, while a complete
+syntax-mode witness keeps only a small integer and succeeds. Numeric ranges,
+precision and cross-row relationships remain outside the declared feature model.
+Another negative test uses amounts `1`, `1e0`, then `1.5`: syntax mode selects the
+first two, but dlt coerces `1e0` to an integer and loses the fractional variant column.
+`1e0` and `1.5` share the same `float` syntax kind; syntax coverage cannot establish
+which values an importer will coerce.
 
 Keep value-sensitive, ordering, duplicate-key, cross-record, and failure-predicate
 cases separately. Run the real importer and compare the behavior you need; a 100%

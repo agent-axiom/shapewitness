@@ -42,6 +42,8 @@ shapewitness examples/events.jsonl -n 4 --report coverage.json > fixture.jsonl
 Lines **1, 3, 4, and 5** survive. See the [input](https://github.com/agent-axiom/shapewitness/blob/main/examples/events.jsonl),
 [selected fixture](https://github.com/agent-axiom/shapewitness/blob/main/examples/witness.jsonl), and [explanation](https://github.com/agent-axiom/shapewitness/blob/main/examples/coverage.json).
 Use `--require-complete` to fail CI when the selected rows leave observed features uncovered.
+In this source checkout, opt into `--number-mode syntax` for integer versus fractional/exponent witnesses;
+see the [numeric feature model](https://github.com/agent-axiom/shapewitness/blob/main/docs/feature-model.md#optional-numeric-syntax-coverage).
 
 ## Read next
 

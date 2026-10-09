@@ -15,6 +15,10 @@ shapewitness export.jsonl -n 12 --require-complete \
 # Machine-readable stderr status, with a separate full report.
 shapewitness export.jsonl --status json --report report.json > sample.jsonl
 
+# Keep integer and fractional/exponent witnesses separately (report format 2).
+shapewitness export.jsonl --number-mode syntax --require-complete \
+  --output numeric-fixture.jsonl --report numeric-coverage.json
+
 # Inspect coverage without selecting rows.
 shapewitness export.jsonl -n 0 --report inventory.json --status quiet
 
@@ -75,3 +79,7 @@ The library takes a binary stream with `readline(size)`, including non-seekable 
 It returns only after full validation and selection. `Result.rows` are in source
 order; `selection_rank` preserves greedy order. `temp_dir=` chooses the private
 spool's parent directory. `skip_blank_lines=True` is the explicit blank-line opt-in.
+`number_mode="syntax"` opts into separate integer and fractional/exponent feature
+kinds; `number_mode="json"` is the compatible default. See the
+[feature model](feature-model.md#optional-numeric-syntax-coverage) for syntax rules,
+report versioning, and limitations. No numeric values are converted in either mode.

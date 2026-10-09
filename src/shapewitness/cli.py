@@ -24,6 +24,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--status", choices=("human", "json", "quiet"), default="human", help="stderr status format")
     parser.add_argument("--require-complete", action="store_true", help="exit 3 if the selected rows leave observed features uncovered")
     parser.add_argument("--skip-blank-lines", action="store_true", help="explicitly ignore blank lines (default: reject)")
+    parser.add_argument("--number-mode", choices=("json", "syntax"), default="json",
+                        help="group numbers (json, default), or distinguish integer and fractional/exponent syntax (report format 2)")
     parser.add_argument("--temp-dir", help="parent directory for the private, auto-removed SQLite spool")
     parser.add_argument("--version", action="version", version=f"shapewitness {__version__}")
     limits = parser.add_argument_group("resource limits (bytes include line endings)")
@@ -59,7 +61,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         with ExitStack() as stack:
             source = sys.stdin.buffer if args.input == "-" else stack.enter_context(open(args.input, "rb"))
             result = select(source, max_rows=args.max_rows, limits=limits,
-                            skip_blank_lines=args.skip_blank_lines, temp_dir=args.temp_dir)
+                            skip_blank_lines=args.skip_blank_lines, temp_dir=args.temp_dir,
+                            number_mode=args.number_mode)
         # Input/limit failures never emit data or create outputs. Exclusive open
         # prevents clobbering files created by another process after our check.
         # If an I/O failure occurs while writing, a partial output can remain.
