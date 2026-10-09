@@ -170,7 +170,7 @@ class PublisherTests(unittest.TestCase):
 
     def test_inlined_checks_match_helpers(self):
         text = (ROOT / '.github/workflows/publish.yml').read_text()
-        for marker, filename in [('TAG_VALIDATOR', 'validate_release_tag'), ('VERIFIER', 'verify_release_manifest')]:
+        for marker, filename in [('MAIN_GATE', 'validate_main_release'), ('VERIFIER', 'verify_release_manifest')]:
             body = text.split('          # INLINED_' + marker + '_START\n', 1)[1]
             body = body.split('          # INLINED_' + marker + '_END\n', 1)[0]
             plain = ''.join(line[10:] + '\n' for line in body.splitlines())
@@ -180,9 +180,13 @@ class PublisherTests(unittest.TestCase):
             self.assertEqual(text.count('\n  ' + job + ':\n'), 1)
         self.assertNotIn('workflow_dispatch:', text)
         self.assertNotIn('id-token:', text)
-        self.assertIn("- 'v*'", text)
-        self.assertIn('github.event.created', text)
-        self.assertIn('!github.event.forced', text)
+        self.assertIn('workflows: [CI, Release readiness]', text)
+        self.assertIn('branches: [main]', text)
+        self.assertIn("github.event.workflow_run.event == 'push'", text)
+        self.assertIn('ref: ${{ github.event.workflow_run.head_sha }}', text)
+        self.assertIn('queue: max', text)
+        self.assertIn("if: steps.final_gate.outputs.publish == 'true'", text)
+        self.assertNotIn('    tags:', text)
         self.assertIn('attestations: false', text)
         self.assertIn('skip-existing: false', text)
         before, after = text.split('\n  publish:\n', 1)
