@@ -15,7 +15,9 @@ python -m build
 ```
 
 CI tests Linux on Python 3.10, 3.12, and 3.14, plus macOS and Windows on 3.12, and
-builds/installs the package. Tests include a seeded independent feature oracle,
+builds and independently installs both wheel and sdist on that same five-environment
+matrix. Distribution checks clear `PYTHONPATH`, verify the installed module is outside
+the source directory, and run the full core test suite plus the demo against each artifact. Tests include a seeded independent feature oracle,
 greedy-choice verification, cross-hash-seed determinism, precision-preserving bytes,
 strict failures, nested missing semantics, provenance, and resource-bound checks.
 
