@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 — Unreleased
 
 - Add executable sqlite-utils and dlt/DuckDB regression recipes with pinned optional
   development dependencies, source-byte verification, real schema/value comparisons,
@@ -10,6 +10,10 @@
 - Walk wide objects/arrays lazily so traversal bookkeeping is bounded by nesting
   depth and node limits are checked before expanding siblings. Selection, report
   format, and feature semantics are unchanged.
+- Use one runtime version for the API, CLI, and provenance report, and verify it
+  against package metadata in both built distributions.
+- Remove the 0.1.0 filename from readiness checks and test real importers against
+  the installed release wheel before any future publishing step.
 
 ## Release automation
 

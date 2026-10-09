@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from shapewitness import __version__
+
 
 class CliTests(unittest.TestCase):
     def cli(self, *args, data=b'{}\n{"x":null}\n', **kw):
@@ -71,7 +73,7 @@ class CliTests(unittest.TestCase):
     def test_quiet_and_version(self):
         proc = self.cli('--status', 'quiet')
         self.assertEqual(proc.stderr, b'')
-        self.assertEqual(self.cli('--version').stdout.strip(), b'shapewitness 0.1.0')
+        self.assertEqual(self.cli('--version').stdout.strip(), f'shapewitness {__version__}'.encode())
         self.assertIn(b'--max-associations', self.cli('--help').stdout)
 
     def test_limits_and_empty(self):

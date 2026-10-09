@@ -30,7 +30,9 @@ write access to trusted maintainers; the ancestry check does not replace access 
 
 ## Before tagging
 
-1. Review package metadata and the intended stable version.
+1. Review package metadata and the intended stable version. Update both
+   `pyproject.toml` and `src/shapewitness/_version.py`; distribution checks reject
+   drift. Regenerate the example coverage report so its tool version matches.
 2. Wait for CI and Release readiness on the exact commit on `main`.
 3. Confirm the official PyPI name/version state. HTTP 404 alone does not reserve or
    guarantee that a new name will be accepted.
@@ -67,9 +69,11 @@ python scripts/prepare_pypi_readme.py --check
 python -m build --outdir dist
 python -m twine check --strict dist/*
 python scripts/check_distribution.py dist
-python -m pip install --no-deps dist/shapewitness-0.1.0-py3-none-any.whl
+python -m pip install --no-deps dist/*.whl
 python -m unittest discover -s tests -v
 python -m pytest -q examples/recipes/pytest_fixtures.py
+python -m pip install -r tests/integration/requirements.txt
+python -m unittest discover -s tests/integration -v
 ```
 
 The package description is generated from the short README with absolute GitHub
@@ -77,6 +81,13 @@ links. Regenerate with `python scripts/prepare_pypi_readme.py` after README chan
 The [non-publishing readiness workflow](../../.github/workflows/release-readiness.yml)
 also checks wheel-based uvx/pipx execution and retains candidate artifacts for 14 days.
 It has no upload credential or publishing action.
+
+Runtime version consistency is checked in the source tree, wheel, source archive,
+installed package metadata, CLI, and report. Readiness and the secretless publishing
+build job also run the real-importer regression suite against the installed wheel.
+The optional importer packages are test dependencies only; the shipped wheel still
+has zero runtime dependencies. Preparing or merging a version change does not
+publish it: an authorized new stable tag remains the separate release action.
 
 Official references: [GitHub tag triggers](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#push),
 [PyPI token scopes](https://pypi.org/help/#apitoken),
