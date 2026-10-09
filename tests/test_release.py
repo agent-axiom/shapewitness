@@ -167,6 +167,7 @@ class PublisherTests(unittest.TestCase):
             self.assertIn('python -m unittest discover -s tests/integration -v', workflow)
             self.assertIn('python examples/recipes/importer_regression.py sqlite-utils', workflow)
             self.assertIn('python examples/recipes/importer_regression.py dlt', workflow)
+            self.assertIn('examples/recipes/structural_regression.py', workflow)
 
     def test_inlined_checks_match_helpers(self):
         text = (ROOT / '.github/workflows/publish.yml').read_text()

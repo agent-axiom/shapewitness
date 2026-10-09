@@ -44,6 +44,9 @@ Lines **1, 3, 4, and 5** survive. See the [input](examples/events.jsonl),
 Use `--require-complete` to fail CI when the selected rows leave observed features uncovered.
 Opt into `--number-mode syntax` for integer versus fractional/exponent witnesses;
 see the [numeric feature model](docs/feature-model.md#optional-numeric-syntax-coverage).
+Version 0.1.3 also compares baseline/current structural inventories for CI and keeps
+known problem rows with SHA-256 checked pins. Try the complete
+[pytest + GitHub Actions regression case](docs/recipes/structural-regression.md).
 
 ## Read next
 

@@ -38,6 +38,15 @@ def _inventory(report: Any) -> tuple[str, str, set[Feature]]:
         if report.get("feature_model") != model or options.get("number_mode") != "syntax":
             raise ShapeWitnessError("incompatible_report", "report format and feature model are incompatible")
         kinds = _COMMON_KINDS | {"integer", "float"}
+    elif version == 3:
+        model = report.get("feature_model")
+        number_mode = options.get("number_mode")
+        if model == _JSON_MODEL and number_mode == "json":
+            kinds = _COMMON_KINDS | {"number"}
+        elif model == _SYNTAX_MODEL and number_mode == "syntax":
+            kinds = _COMMON_KINDS | {"integer", "float"}
+        else:
+            raise ShapeWitnessError("incompatible_report", "report format and feature model are incompatible")
     else:
         raise ShapeWitnessError("incompatible_report", "unsupported report format version")
     features, coverage, source = report.get("features"), report.get("coverage"), report.get("input")

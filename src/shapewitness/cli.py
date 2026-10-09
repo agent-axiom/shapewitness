@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from contextlib import ExitStack
 from dataclasses import fields
@@ -11,7 +12,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from . import __version__
-from .core import Limits, ShapeWitnessError, select
+from .core import Pin, Limits, ShapeWitnessError, select
 from .comparison import compare_reports, read_report
 
 
@@ -24,12 +25,14 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--report", help="create a deterministic JSON coverage/provenance report")
     parser.add_argument("--status", choices=("human", "json", "quiet"), default="human", help="stderr status format")
     parser.add_argument("--require-complete", action="store_true", help="exit 3 if the selected rows leave observed features uncovered")
+    parser.add_argument("--pin-row", action="append", default=[], metavar="LINE:SHA256",
+                        help="require exact physical row bytes; repeat for multiple pins (report format 3)")
     parser.add_argument("--baseline", help="compare the full observed inventory with this saved coverage report")
     parser.add_argument("--comparison-report", help="create a separate structural comparison JSON report (requires --baseline)")
     parser.add_argument("--require-unchanged", action="store_true", help="exit 4 on added/removed observed features (requires --baseline)")
     parser.add_argument("--skip-blank-lines", action="store_true", help="explicitly ignore blank lines (default: reject)")
     parser.add_argument("--number-mode", choices=("json", "syntax"), default="json",
-                        help="group numbers (json, default), or distinguish integer and fractional/exponent syntax (report format 2)")
+                        help="group numbers (json, default), or distinguish integer and fractional/exponent syntax (format 2 without pins)")
     parser.add_argument("--temp-dir", help="parent directory for the private, auto-removed SQLite spool")
     parser.add_argument("--version", action="version", version=f"shapewitness {__version__}")
     limits = parser.add_argument_group("resource limits (bytes include line endings)")
@@ -53,6 +56,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         limits = Limits(**{field.name: getattr(args, field.name) for field in fields(Limits)})
         limits.validate()
+        pins = []
+        for specification in args.pin_row:
+            if not re.fullmatch(r"[1-9][0-9]{0,18}:[0-9a-f]{64}", specification):
+                raise ShapeWitnessError("configuration", "pin-row must be LINE:SHA256 with a lowercase digest")
+            line, digest = specification.split(":")
+            pins.append(Pin(int(line), digest))
         if (args.comparison_report or args.require_unchanged) and not args.baseline:
             raise ShapeWitnessError("configuration", "comparison-report and require-unchanged require baseline")
         # Reject collisions before consuming stdin; do not overwrite input,
@@ -72,7 +81,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             source = sys.stdin.buffer if args.input == "-" else stack.enter_context(open(args.input, "rb"))
             result = select(source, max_rows=args.max_rows, limits=limits,
                             skip_blank_lines=args.skip_blank_lines, temp_dir=args.temp_dir,
-                            number_mode=args.number_mode)
+                            number_mode=args.number_mode, pins=pins)
         comparison = compare_reports(baseline, result.report) if baseline is not None else None
         # Input/limit failures never emit data or create outputs. Exclusive open
         # prevents clobbering files created by another process after our check.

@@ -15,8 +15,10 @@ pytest recipe have separate development dependencies.
 ## Repository map
 
 - `src/shapewitness/core.py`: parsing, limits, private SQLite spool, feature extraction, greedy selector, reports
+- `src/shapewitness/comparison.py`: bounded report reader, fail-closed inventory comparison
 - `src/shapewitness/cli.py`: arguments, stream routing, exclusive output creation, exit status
 - `tests/test_core.py`: edge cases, limit failures, seeded independent feature/selection oracle
+- `tests/test_comparison.py` and `tests/test_pins.py`: inventory gates, exact pins, budgets, compatibility
 - `tests/test_cli.py`: process-level interface, output safety, hash-seed determinism
 - `tests/test_resources.py`: Linux-only bounded-address-space smoke test
 - `tests/integration/`: optional sqlite-utils/dlt checks, separate from core discovery

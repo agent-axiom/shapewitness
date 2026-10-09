@@ -27,9 +27,9 @@ default mode can keep just the first. Syntax mode needs both to cover that path.
 This can need more rows, bytes, features, and associations; the usual limits and
 partial-coverage reporting still apply. `--require-complete` checks the chosen model.
 
-Syntax mode emits report **format 2** with
+Without pins, syntax mode emits report **format 2** with
 `feature_model: "json-structure-number-syntax-v1"` and `options.number_mode: "syntax"`.
-Default `--number-mode json` keeps the original format-1 report and selection exactly.
+Without pins, default `--number-mode json` keeps the original format-1 report and selection exactly.
 Consumers must check the format/model before interpreting feature kinds or comparing
 coverage scores. The deterministic greedy algorithm itself is unchanged.
 
@@ -83,3 +83,11 @@ continues with the next best feasible row. This is not byte-optimal selection.
 The same bytes and options yield the same fixture and report, regardless of Python
 hash seed. Reordering the input can change the result. Duplicate shapes do not add
 weight just because they are common.
+
+### Retaining known cases
+
+Nonempty pins add a mandatory, SHA-256 checked selection stage before greedy
+coverage. Pinned rows are selected in source order, count toward both budgets,
+and may contribute no new features. Report format 3 records each selection reason
+and the same explicit numeric feature model; the feature universe does not change.
+See [pinning behavior and failures](usage.md#keep-a-known-problem-row).

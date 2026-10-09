@@ -8,11 +8,13 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import sys
 import tempfile
 from dataclasses import asdict, dataclass
-from typing import Any, BinaryIO, Iterator
+from typing import Any, BinaryIO, Iterator, Sequence
+from collections.abc import Sequence as SequenceABC
 
 from ._version import __version__
 
@@ -63,6 +65,14 @@ class Limits:
 
 
 @dataclass(frozen=True)
+class Pin:
+    """Require one exact source line, including its whitespace and line ending."""
+
+    line: int
+    sha256: str
+
+
+@dataclass(frozen=True)
 class Witness:
     """An unchanged physical input line and its location in the byte stream."""
 
@@ -73,6 +83,7 @@ class Witness:
     selection_rank: int
     new_feature_ids: tuple[int, ...]
     feature_ids: tuple[int, ...]
+    selection_reason: str = "greedy"
 
 
 @dataclass(frozen=True)
@@ -263,7 +274,7 @@ def _connect(path: str, limits: Limits) -> sqlite3.Connection:
 
 def select(source: BinaryIO, *, max_rows: int = 20, limits: Limits | None = None,
            skip_blank_lines: bool = False, temp_dir: str | None = None,
-           number_mode: str = "json") -> Result:
+           number_mode: str = "json", pins: Sequence[Pin] = ()) -> Result:
     """Read JSONL and greedily cover its observed features with at most max_rows.
 
     Each round picks the row with the most currently uncovered features; ties
@@ -277,6 +288,11 @@ def select(source: BinaryIO, *, max_rows: int = 20, limits: Limits | None = None
     converting values. It uses report format 2 and does not guarantee equivalent
     importer behavior, numeric range, precision, or value-sensitive coverage.
 
+    pins requires exact physical lines by SHA-256, selected before greedy rows.
+    Pins consume the same row and byte budgets; missing/mismatched pins or an
+    insufficient budget fail before returning a Result. Pin order is normalized
+    by source line. Nonempty pins opt into report format 3 and explicit reasons.
+
     The complete input is validated before any Result is returned. Temporary
     storage is private and removed on success or exceptions. Binary input only.
     """
@@ -286,11 +302,23 @@ def select(source: BinaryIO, *, max_rows: int = 20, limits: Limits | None = None
         raise ShapeWitnessError("configuration", "max_rows must be between 0 and max_records")
     if number_mode not in ("json", "syntax"):
         raise ShapeWitnessError("configuration", "number_mode must be json or syntax")
+    if not isinstance(pins, SequenceABC) or isinstance(pins, (str, bytes, bytearray)):
+        raise ShapeWitnessError("configuration", "pins must be a sequence of Pin objects")
+    if len(pins) > max_rows:
+        raise ShapeWitnessError("pin_budget", "pinned rows exceed max_rows")
+    pin_lines: set[int] = set()
+    for pin in pins:
+        if (not isinstance(pin, Pin) or type(pin.line) is not int
+                or not 1 <= pin.line < sys.maxsize or pin.line in pin_lines
+                or not isinstance(pin.sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", pin.sha256)):
+            raise ShapeWitnessError("configuration", "each pin needs a unique positive line and lowercase SHA-256")
+        pin_lines.add(pin.line)
+    pins = tuple(sorted(pins, key=lambda pin: pin.line))
     try:
         with tempfile.TemporaryDirectory(prefix="shapewitness-", dir=temp_dir) as work:
             db = _connect(os.path.join(work, "spool.sqlite3"), limits)
             try:
-                return _select(db, source, max_rows, limits, skip_blank_lines, number_mode)
+                return _select(db, source, max_rows, limits, skip_blank_lines, number_mode, pins)
             finally:
                 db.close()
     except sqlite3.DatabaseError as exc:
@@ -303,7 +331,7 @@ def select(source: BinaryIO, *, max_rows: int = 20, limits: Limits | None = None
 
 
 def _select(db: sqlite3.Connection, source: BinaryIO, max_rows: int, limits: Limits,
-            skip_blank_lines: bool, number_mode: str) -> Result:
+            skip_blank_lines: bool, number_mode: str, pins: tuple[Pin, ...]) -> Result:
     union: dict[Path, set[str]] = {}
     observed: set[Feature] = set()
     total_bytes = total_lines = records = skipped = 0
@@ -340,6 +368,20 @@ def _select(db: sqlite3.Connection, source: BinaryIO, max_rows: int, limits: Lim
         db.execute("INSERT INTO records(line,offset,raw) VALUES (?, ?, ?)", (total_lines, offset, raw))
     db.commit()
 
+    # Validate every requested byte identity against the private spool before
+    # selection; do not silently drop a pin or exceed its budgets.
+    pinned_bytes = 0
+    for pin in pins:
+        row = db.execute("SELECT raw FROM records WHERE line=?", (pin.line,)).fetchone()
+        if row is None:
+            raise ShapeWitnessError("pin_not_found", "pinned physical line is absent or skipped", pin.line)
+        raw = row[0]
+        if hashlib.sha256(raw).hexdigest() != pin.sha256:
+            raise ShapeWitnessError("pin_mismatch", "pinned row SHA-256 does not match source bytes", pin.line)
+        pinned_bytes += len(raw)
+    if pinned_bytes > limits.max_output_bytes:
+        raise ShapeWitnessError("pin_budget", "pinned rows exceed max_output_bytes")
+
     # First pass collected the complete observed vocabulary. Second pass adds
     # local missing-member evidence, including keys discovered on later lines.
     feature_ids: dict[Feature, int] = {}
@@ -366,16 +408,8 @@ def _select(db: sqlite3.Connection, source: BinaryIO, max_rows: int, limits: Lim
     db.execute("CREATE INDEX candidate_gain ON records(gain DESC, line ASC)")
     selected: list[Witness] = []
     output_bytes = 0
-    while len(selected) < max_rows:
-        choice = db.execute("SELECT line,length(raw) FROM records WHERE gain>0 ORDER BY gain DESC,line ASC LIMIT 1").fetchone()
-        if choice is None:
-            break
-        candidate, size = choice
-        if output_bytes + size > limits.max_output_bytes:
-            # Available bytes only decrease; this row will never become feasible.
-            db.execute("UPDATE records SET gain=-1 WHERE line=?", (candidate,))
-            continue
-        line = candidate
+    def choose(line: int, reason: str) -> None:
+        nonlocal output_bytes
         offset, raw = db.execute("SELECT offset,raw FROM records WHERE line=?", (line,)).fetchone()
         all_ids = tuple(r[0] for r in db.execute("SELECT feature FROM edges WHERE line=? ORDER BY feature", (line,)))
         new_ids = tuple(r[0] for r in db.execute("""
@@ -386,8 +420,21 @@ def _select(db: sqlite3.Connection, source: BinaryIO, max_rows: int, limits: Lim
             db.execute("UPDATE records SET gain=gain-1 WHERE line IN (SELECT line FROM edges WHERE feature=?)", (fid,))
         db.execute("UPDATE features SET covered=1 WHERE id IN (SELECT feature FROM edges WHERE line=?)", (line,))
         selected.append(Witness(line, offset, raw, hashlib.sha256(raw).hexdigest(),
-                                len(selected) + 1, new_ids, all_ids))
+                                len(selected) + 1, new_ids, all_ids, reason))
         output_bytes += len(raw)
+
+    for pin in pins:
+        choose(pin.line, "pinned")
+    while len(selected) < max_rows:
+        choice = db.execute("SELECT line,length(raw) FROM records WHERE gain>0 ORDER BY gain DESC,line ASC LIMIT 1").fetchone()
+        if choice is None:
+            break
+        candidate, size = choice
+        if output_bytes + size > limits.max_output_bytes:
+            # Available bytes only decrease; this row will never become feasible.
+            db.execute("UPDATE records SET gain=-1 WHERE line=?", (candidate,))
+            continue
+        choose(candidate, "greedy")
     selected.sort(key=lambda r: r.line)
     features = [{"id": fid, "path": json.loads(path), "kind": kind, "covered": bool(covered)}
                 for fid, path, kind, covered in db.execute("SELECT id,path,kind,covered FROM features ORDER BY id")]
@@ -418,4 +465,15 @@ def _select(db: sqlite3.Connection, source: BinaryIO, max_rows: int, limits: Lim
         report["format_version"] = 2
         report["feature_model"] = "json-structure-number-syntax-v1"
         report["options"]["number_mode"] = number_mode
+    if pins:
+        # Pinning changes the selection contract, not the feature universe. Keep
+        # old report consumers from overlooking explicitly retained zero-gain rows.
+        report["format_version"] = 3
+        report["feature_model"] = ("json-structure-number-syntax-v1" if number_mode == "syntax"
+                                   else "json-structure-v1")
+        report["algorithm"] = "pinned-first-greedy-new-features-first-line-tiebreak-v1"
+        report["options"]["number_mode"] = number_mode
+        report["options"]["pins"] = [{"line": pin.line, "sha256": pin.sha256} for pin in pins]
+        for entry, witness in zip(report["rows"], selected):
+            entry["selection_reason"] = witness.selection_reason
     return Result(tuple(selected), report)

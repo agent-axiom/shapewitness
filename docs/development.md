@@ -28,6 +28,12 @@ sqlite-utils CLI imports and local dlt/DuckDB pipelines on synthetic data, inclu
 negative cases. They are deliberately outside dependency-free core discovery.
 See the [real-importer recipe](recipes/real-importers.md) for runnable examples.
 
+The separate `regression` CI job runs the complete
+[pytest/GitHub Actions recipe](recipes/structural-regression.md), preserving its
+synthetic witness, inventory, delta, and expected-failure status artifacts. Release
+readiness and the publisher's build stage run the recipe against the candidate wheel.
+Pytest remains an optional development dependency, outside core test discovery.
+
 See [architecture](architecture.md), [contributing](../CONTRIBUTING.md), and
 [security guidance](../SECURITY.md). MIT licensed. Version 0.1 is an initial release;
 report/feature semantics are versioned and may evolve in future releases.

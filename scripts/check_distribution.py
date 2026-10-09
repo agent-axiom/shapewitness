@@ -56,6 +56,7 @@ def inspect(directory):
         entrypoints = configparser.ConfigParser()
         entrypoints.read_string(archive.read(f'{name}-{version}.dist-info/entry_points.txt').decode())
         assert entrypoints['console_scripts']['shapewitness'] == 'shapewitness.cli:main'
+        assert 'shapewitness/comparison.py' in names
         assert 'shapewitness/py.typed' in names
         assert any(path.endswith('/licenses/LICENSE') for path in names)
         assert not any(path.startswith(('tests/', 'examples/', '.')) for path in names)
@@ -64,7 +65,13 @@ def inspect(directory):
         prefix = f'{name}-{version}/'
         for required in ('LICENSE', 'AGENTS.md', 'README.md', 'docs/release/PYPI_README.md',
                          'docs/release/publish.yml.example', 'src/shapewitness/core.py',
-                         'src/shapewitness/_version.py',
+                         'src/shapewitness/_version.py', 'src/shapewitness/comparison.py',
+                         'examples/recipes/structural_regression.py',
+                         'examples/regression/baseline-report.json', 'examples/regression/baseline.jsonl',
+                         'examples/regression/current.jsonl', 'examples/regression/current.witness.jsonl',
+                         'examples/regression/drifted.jsonl', 'examples/regression/pins.json',
+                         'tests/test_comparison.py', 'tests/test_pins.py',
+                         'docs/recipes/structural-regression.md',
                          'examples/recipes/pytest_fixtures.py', 'tests/test_core.py',
                          'examples/integrations/orders.jsonl',
                          'examples/recipes/importer_regression.py', 'examples/recipes/dlt_import.py',

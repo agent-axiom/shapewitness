@@ -76,7 +76,7 @@ python -m twine check --strict dist/*
 python scripts/check_distribution.py dist
 python -m pip install --no-deps dist/*.whl
 python -m unittest discover -s tests -v
-python -m pytest -q examples/recipes/pytest_fixtures.py
+python -m pytest -q examples/recipes/pytest_fixtures.py examples/recipes/structural_regression.py
 python -m pip install -r tests/integration/requirements.txt
 python -m unittest discover -s tests/integration -v
 ```
