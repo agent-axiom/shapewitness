@@ -13,7 +13,9 @@ or dependency on locale, wall-clock time, or a random generator.
    explicit limit fails without an unbounded `readline()`. Total bytes, records,
    nesting, value nodes, path lengths, and vocabulary are bounded.
 2. A lexical nesting check runs before `json.loads`. Numeric callbacks produce a
-   type marker rather than computing an arbitrary numeric value. Duplicate object
+   type marker rather than computing an arbitrary numeric value. The opt-in syntax
+   mode uses separate integer and fractional/exponent markers in both discovery
+   passes; the default retains one `number` marker. Duplicate object
    keys and non-finite constants fail. Values remain in memory only for traversal.
    Lazy child iterators keep traversal bookkeeping O(nesting depth); wide objects
    and arrays do not allocate a second stack entry/path for every sibling before
@@ -63,6 +65,8 @@ minimum cardinality claim. Returning fewer than the requested number of rows is
 intentional when no uncovered features remain. Frequency weighting, value buckets,
 array-position coverage, approximate discovery, persisted indexes, and parallel
 selection are deliberately outside this MVP.
+Optional numeric-syntax coverage classifies tokens only; it adds no magnitude or
+precision buckets and never converts numeric values.
 
 ## Future compatibility
 
@@ -71,3 +75,5 @@ and selection semantics. Path segments are tagged by JSON value type: strings ar
 object members, `null` is an array wildcard. No dotted-path escape convention is
 needed. Feature IDs are local to one report. A future model must not silently
 reinterpret old reports or describe a partial/truncated inventory as complete.
+Numeric-syntax mode opts into format 2 and declares its feature model explicitly;
+default-mode report bytes and selection semantics remain unchanged.

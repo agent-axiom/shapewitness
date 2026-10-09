@@ -2,9 +2,43 @@
 
 [Home](../README.md) · [Documentation index](README.md)
 
-A feature is a **path plus a kind**. The kinds are `object`, `array`, `string`,
+A feature is a **path plus a kind**. By default, the kinds are `object`, `array`, `string`,
 `number`, `boolean`, `null`, `missing`, `empty-object`, and `empty-array`.
 Integers and fractional/exponent numbers share the `number` kind.
+
+### Optional numeric-syntax coverage
+
+This option is available in the source checkout, not in the published 0.1.1 package.
+
+Use `--number-mode syntax` (Python: `select(source, number_mode="syntax")`) when
+integer versus fractional/exponent syntax matters to an importer. It replaces the
+`number` kind with two kinds at each path:
+
+- `integer`: JSON integer syntax, including `0`, `-0`, and arbitrarily large integers
+- `float`: JSON syntax with a fraction or exponent, including `1.0`, `1e0`, and `1E-2`
+
+These are **syntax categories**, not computed numeric values or range guarantees.
+The parser still never converts numbers: `1e9999999` and long decimal lexemes remain
+valid and byte-identical. Booleans remain `boolean`; numeric strings remain `string`.
+No mode accepts non-JSON constants such as `NaN` or `Infinity`.
+
+For two otherwise same-shaped rows containing `1` and `1.5` at the same path, the
+default mode can keep just the first. Syntax mode needs both to cover that path.
+This can need more rows, bytes, features, and associations; the usual limits and
+partial-coverage reporting still apply. `--require-complete` checks the chosen model.
+
+Syntax mode emits report **format 2** with
+`feature_model: "json-structure-number-syntax-v1"` and `options.number_mode: "syntax"`.
+Default `--number-mode json` keeps the original format-1 report and selection exactly.
+Consumers must check the format/model before interpreting feature kinds or comparing
+coverage scores. The deterministic greedy algorithm itself is unchanged.
+
+This mode addresses the tested integer/float inference examples in the
+[real-importer recipe](recipes/real-importers.md). It does not preserve value ranges,
+precision, signed zero, duplicate primary keys, order-dependent inference, or
+combinations of values/features. Run downstream behavior checks for those needs.
+
+### Paths and missing members
 
 Paths are JSON arrays in the report:
 

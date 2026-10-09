@@ -24,8 +24,8 @@ from shapewitness import select
 FIXTURE = Path(__file__).resolve().parents[1] / 'integrations/orders.jsonl'
 
 
-def checked_fixture(data, max_rows=20):
-    result = select(io.BytesIO(data), max_rows=max_rows)
+def checked_fixture(data, max_rows=20, *, number_mode='json'):
+    result = select(io.BytesIO(data), max_rows=max_rows, number_mode=number_mode)
     if not result.report['coverage']['complete']:
         raise ValueError('Incomplete structural coverage; increase the row budget')
     if result.report['input']['sha256'] != hashlib.sha256(data).hexdigest():
@@ -100,8 +100,8 @@ def assert_retained_behavior(full, reduced, retained_ids):
         raise AssertionError('SQLite storage classes differ for retained records')
 
 
-def compare(importer, data, max_rows=20):
-    result, fixture = checked_fixture(data, max_rows)
+def compare(importer, data, max_rows=20, *, number_mode='json'):
+    result, fixture = checked_fixture(data, max_rows, number_mode=number_mode)
     # This recipe requires a unique business ID for comparisons across fresh loads.
     records = [json.loads(line) for line in data.splitlines()]
     ids = [record['id'] for record in records]
@@ -122,8 +122,9 @@ def compare(importer, data, max_rows=20):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('importer', choices=('sqlite-utils', 'dlt'))
+    parser.add_argument('--number-mode', choices=('json', 'syntax'), default='json')
     args = parser.parse_args()
-    result, _, _ = compare(args.importer, FIXTURE.read_bytes())
+    result, _, _ = compare(args.importer, FIXTURE.read_bytes(), number_mode=args.number_mode)
     print(json.dumps({'importer': args.importer,
                       'input_records': result.report['input']['records'],
                       'selected_lines': [row.line for row in result.rows],

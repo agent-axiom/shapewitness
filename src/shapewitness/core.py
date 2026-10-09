@@ -21,6 +21,8 @@ from ._version import __version__
 Path = tuple[str | None, ...]
 Feature = tuple[Path, str]
 _NUMBER = object()
+_INTEGER = object()
+_FLOAT = object()
 
 
 class ShapeWitnessError(ValueError):
@@ -108,7 +110,7 @@ def _check_string(value: str) -> None:
         raise ShapeWitnessError("invalid_unicode", "unpaired Unicode surrogate is not supported")
 
 
-def _parse(raw: bytes, limits: Limits, line: int) -> Any:
+def _parse(raw: bytes, limits: Limits, line: int, number_mode: str = "json") -> Any:
     try:
         text = raw.decode("utf-8", errors="strict")
         if text.startswith("\ufeff"):
@@ -133,10 +135,13 @@ def _parse(raw: bytes, limits: Limits, line: int) -> Any:
                     _fail_limit("max_depth")
             elif char in "]}":
                 depth -= 1
-        # All JSON numeric lexemes map to a private type marker. We never round
-        # a float, overflow an exponent, or convert arbitrarily large integers.
-        return json.loads(text, parse_int=lambda _: _NUMBER,
-                          parse_float=lambda _: _NUMBER,
+        # Mark numeric syntax without converting values. The opt-in mode keeps
+        # integer lexemes separate from fractional/exponent lexemes, even when
+        # the latter have an integral value (1.0 or 1e0) or exceed float range.
+        integer = _INTEGER if number_mode == "syntax" else _NUMBER
+        floating = _FLOAT if number_mode == "syntax" else _NUMBER
+        return json.loads(text, parse_int=lambda _: integer,
+                          parse_float=lambda _: floating,
                           parse_constant=_nonfinite,
                           object_pairs_hook=_unique_object)
     except UnicodeDecodeError:
@@ -200,6 +205,10 @@ def _walk(value: Any, limits: Limits, line: int) -> Iterator[tuple[Path, Any]]:
 def _kind(value: Any) -> str:
     if value is _NUMBER:
         return "number"
+    if value is _INTEGER:
+        return "integer"
+    if value is _FLOAT:
+        return "float"
     if value is None:
         return "null"
     if isinstance(value, bool):
@@ -253,7 +262,8 @@ def _connect(path: str, limits: Limits) -> sqlite3.Connection:
 
 
 def select(source: BinaryIO, *, max_rows: int = 20, limits: Limits | None = None,
-           skip_blank_lines: bool = False, temp_dir: str | None = None) -> Result:
+           skip_blank_lines: bool = False, temp_dir: str | None = None,
+           number_mode: str = "json") -> Result:
     """Read JSONL and greedily cover its observed features with at most max_rows.
 
     Each round picks the row with the most currently uncovered features; ties
@@ -262,6 +272,11 @@ def select(source: BinaryIO, *, max_rows: int = 20, limits: Limits | None = None
     An absent/non-object ancestor is not a missing descendant. No optimization
     or representativeness guarantee is made. Input order affects tie-breaking.
 
+    number_mode="json" groups all numbers, preserving the original feature model.
+    "syntax" distinguishes integer from fractional/exponent syntax without
+    converting values. It uses report format 2 and does not guarantee equivalent
+    importer behavior, numeric range, precision, or value-sensitive coverage.
+
     The complete input is validated before any Result is returned. Temporary
     storage is private and removed on success or exceptions. Binary input only.
     """
@@ -269,11 +284,13 @@ def select(source: BinaryIO, *, max_rows: int = 20, limits: Limits | None = None
     limits.validate()
     if type(max_rows) is not int or max_rows < 0 or max_rows > limits.max_records:
         raise ShapeWitnessError("configuration", "max_rows must be between 0 and max_records")
+    if number_mode not in ("json", "syntax"):
+        raise ShapeWitnessError("configuration", "number_mode must be json or syntax")
     try:
         with tempfile.TemporaryDirectory(prefix="shapewitness-", dir=temp_dir) as work:
             db = _connect(os.path.join(work, "spool.sqlite3"), limits)
             try:
-                return _select(db, source, max_rows, limits, skip_blank_lines)
+                return _select(db, source, max_rows, limits, skip_blank_lines, number_mode)
             finally:
                 db.close()
     except sqlite3.DatabaseError as exc:
@@ -286,7 +303,7 @@ def select(source: BinaryIO, *, max_rows: int = 20, limits: Limits | None = None
 
 
 def _select(db: sqlite3.Connection, source: BinaryIO, max_rows: int, limits: Limits,
-            skip_blank_lines: bool) -> Result:
+            skip_blank_lines: bool, number_mode: str) -> Result:
     union: dict[Path, set[str]] = {}
     observed: set[Feature] = set()
     total_bytes = total_lines = records = skipped = 0
@@ -313,7 +330,7 @@ def _select(db: sqlite3.Connection, source: BinaryIO, max_rows: int, limits: Lim
         records += 1
         if records > limits.max_records:
             _fail_limit("max_records", total_lines)
-        value = _parse(raw, limits, total_lines)
+        value = _parse(raw, limits, total_lines, number_mode)
         for path, node in _walk(value, limits, total_lines):
             observed.add((path, _kind(node)))
             if len(observed) > limits.max_features:
@@ -328,7 +345,7 @@ def _select(db: sqlite3.Connection, source: BinaryIO, max_rows: int, limits: Lim
     feature_ids: dict[Feature, int] = {}
     associations = 0
     for line, raw in db.execute("SELECT line, raw FROM records ORDER BY line"):
-        row_features = _features(_parse(raw, limits, line), union, limits, line)
+        row_features = _features(_parse(raw, limits, line, number_mode), union, limits, line)
         for feature in sorted(row_features, key=lambda f: (_path_json(f[0]), f[1])):
             if feature not in feature_ids:
                 if len(feature_ids) >= limits.max_features:
@@ -395,4 +412,10 @@ def _select(db: sqlite3.Connection, source: BinaryIO, max_rows: int, limits: Lim
                   "new_feature_ids": list(r.new_feature_ids), "feature_ids": list(r.feature_ids)} for r in selected],
         "features": features,
     }
+    if number_mode == "syntax":
+        # Old consumers must not silently interpret new feature kinds as the
+        # original model. Default-mode reports remain byte-for-byte compatible.
+        report["format_version"] = 2
+        report["feature_model"] = "json-structure-number-syntax-v1"
+        report["options"]["number_mode"] = number_mode
     return Result(tuple(selected), report)

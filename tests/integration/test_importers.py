@@ -90,6 +90,36 @@ class SqliteUtilsTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'schema differs'):
             recipe.assert_retained_behavior(full, reduced, {1})
 
+    def test_syntax_mode_preserves_numeric_batch_inference(self):
+        for floating in (b'1.5', b'1e0'):
+            with self.subTest(floating=floating):
+                data = (b'{"id":1,"amount":1}\n{"id":2,"amount":' + floating
+                        + b'}\n{"id":3,"amount":2}\n')
+                result, fixture = recipe.checked_fixture(data, number_mode='syntax')
+                self.assertEqual([row.line for row in result.rows], [1, 2])
+                with tempfile.TemporaryDirectory() as root:
+                    dirs = [Path(root) / name for name in ('full', 'selected')]
+                    for directory in dirs:
+                        directory.mkdir()
+                    full = recipe.sqlite_snapshot(data, dirs[0], batch_size=100)
+                    reduced = recipe.sqlite_snapshot(fixture, dirs[1], batch_size=100)
+                self.assertEqual(full['schema'][1][2], 'REAL')
+                self.assertEqual(reduced['schema'][1][2], 'REAL')
+                recipe.assert_retained_behavior(full, reduced, {1, 2})
+
+    def test_syntax_mode_does_not_preserve_integer_range_failures(self):
+        data = b'{"id":1,"amount":1}\n{"id":2,"amount":9223372036854775808}\n'
+        result, fixture = recipe.checked_fixture(data, number_mode='syntax')
+        self.assertEqual(len(result.rows), 1)
+        with tempfile.TemporaryDirectory() as root:
+            dirs = [Path(root) / name for name in ('full', 'selected')]
+            for directory in dirs:
+                directory.mkdir()
+            with self.assertRaises(subprocess.CalledProcessError) as error:
+                recipe.sqlite_snapshot(data, dirs[0])
+            self.assertIn(b'Python int too large to convert to SQLite INTEGER', error.exception.stderr)
+            self.assertEqual(len(recipe.sqlite_snapshot(fixture, dirs[1])['rows']), 1)
+
     def test_duplicate_primary_key_failure_can_disappear(self):
         data = b'{"id":1,"value":"first"}\n{"id":1,"value":"second"}\n'
         result, fixture = recipe.checked_fixture(data)
@@ -138,6 +168,39 @@ class DltTests(unittest.TestCase):
         self.assertNotIn(['orders', 'amount__v_double', 'DOUBLE', 'YES'], reduced['schema'])
         with self.assertRaisesRegex(AssertionError, 'schema differs'):
             recipe.assert_retained_behavior(full, reduced, {1})
+
+    def test_syntax_mode_preserves_dlt_numeric_variant_column(self):
+        data = b'{"id":1,"amount":1}\n{"id":2,"amount":1.5}\n{"id":3,"amount":2}\n'
+        result, full, reduced = recipe.compare('dlt', data, number_mode='syntax')
+        self.assertEqual([row.line for row in result.rows], [1, 2])
+        self.assertEqual((len(full['rows']), len(reduced['rows'])), (3, 2))
+        self.assertIn(['orders', 'amount__v_double', 'DOUBLE', 'YES'], reduced['schema'])
+        self.assertEqual(reduced['rows'][0]['amount'], 1)
+        self.assertEqual(reduced['rows'][1]['amount__v_double'], 1.5)
+
+    def test_syntax_mode_preserves_dlt_integral_exponent_coercion(self):
+        data = b'{"id":1,"amount":1}\n{"id":2,"amount":1e0}\n{"id":3,"amount":2}\n'
+        result, full, reduced = recipe.compare('dlt', data, number_mode='syntax')
+        self.assertEqual([row.line for row in result.rows], [1, 2])
+        self.assertEqual((len(full['rows']), len(reduced['rows'])), (3, 2))
+        self.assertNotIn(['orders', 'amount__v_double', 'DOUBLE', 'YES'], reduced['schema'])
+        self.assertIn(['orders', 'amount', 'BIGINT', 'YES'], reduced['schema'])
+        self.assertEqual(reduced['rows'][1]['amount'], 1)
+
+    def test_syntax_mode_can_still_lose_dlt_fractional_variant(self):
+        data = b'{"id":1,"amount":1}\n{"id":2,"amount":1e0}\n{"id":3,"amount":1.5}\n'
+        result, fixture = recipe.checked_fixture(data, number_mode='syntax')
+        self.assertEqual([row.line for row in result.rows], [1, 2])
+        with tempfile.TemporaryDirectory() as root:
+            dirs = [Path(root) / name for name in ('full', 'selected')]
+            for directory in dirs:
+                directory.mkdir()
+            full = recipe.dlt_snapshot(data, dirs[0])
+            reduced = recipe.dlt_snapshot(fixture, dirs[1])
+        self.assertIn(['orders', 'amount__v_double', 'DOUBLE', 'YES'], full['schema'])
+        self.assertNotIn(['orders', 'amount__v_double', 'DOUBLE', 'YES'], reduced['schema'])
+        with self.assertRaisesRegex(AssertionError, 'schema differs'):
+            recipe.assert_retained_behavior(full, reduced, {1, 2})
 
 
 if __name__ == '__main__':
