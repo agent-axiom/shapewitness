@@ -13,7 +13,9 @@ Errors identify the line and category without echoing raw values.
 
 Discovery limits are **fail-closed**: exceeding one returns an error, never a claim
 about a truncated input. Row/output budgets instead produce explicitly partial
-coverage. Defaults (all byte counts are binary bytes):
+coverage. Explicit pins are mandatory: if their rows/bytes exceed those budgets,
+the request fails before output rather than dropping a pin or exceeding a budget.
+Defaults (all byte counts are binary bytes):
 
 | Bound | Default |
 | --- | ---: |

@@ -1,11 +1,19 @@
 # Changelog
 
-## Unreleased
+## 0.1.3 — 2026-10-09
 
 - Compare full baseline/current observed inventories by path and kind with
   `compare_reports`, `--baseline`, and a separate `--comparison-report` artifact.
   `--require-unchanged` exits 4 on added or removed features. Unknown report
   formats and different numeric models fail closed before output.
+- Add exact SHA-256 checked `Pin` / `--pin-row` selection before greedy completion.
+  Pins consume the existing row and output-byte budgets and fail closed on
+  missing/changed source rows or insufficient budgets. Opt-in report format 3
+  preserves feature models and explains pinned versus greedy rows.
+- Add a complete pytest/GitHub Actions regression case with reviewed baseline,
+  value-sensitive pinned row, structural-change failure, and importer assertions.
+- Test installed wheel and sdist on the full five-environment CI matrix; document
+  a reproducible growth case and targets for three external trials and one CI adoption.
 - Keep default selection and coverage-report formats unchanged. Fix outdated
   documentation about the already published numeric-syntax option.
 

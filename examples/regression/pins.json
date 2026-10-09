@@ -1,0 +1,10 @@
+{
+  "pins": [
+    {
+      "line": 5,
+      "sha256": "4fbbf6ce0e2f14041203066ea64a029aa7444ea40b7f0392f4b678bcce7c7fb0"
+    }
+  ],
+  "review_note": "Synthetic known regression: quantity zero needs an explicit importer branch. The digest includes the final LF. Review before updating.",
+  "source": "current.jsonl"
+}

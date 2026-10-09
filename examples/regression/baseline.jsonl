@@ -1,0 +1,3 @@
+{"id":"order-001","quantity":2,"total_cents":1200,"currency":"USD","note":"gift","tags":["standard"]}
+{"id":"order-002","quantity":3,"total_cents":1500,"currency":"USD","note":null,"tags":[]}
+{"id":"order-003","quantity":1,"total_cents":300,"currency":"USD","tags":["rush"]}

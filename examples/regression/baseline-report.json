@@ -1,0 +1,199 @@
+{
+  "algorithm": "greedy-new-features-first-line-tiebreak-v1",
+  "coverage": {
+    "complete": true,
+    "covered_features": 11,
+    "fraction": 1.0,
+    "observed_features": 11,
+    "uncovered_feature_ids": []
+  },
+  "features": [
+    {
+      "covered": true,
+      "id": 1,
+      "kind": "string",
+      "path": [
+        "currency"
+      ]
+    },
+    {
+      "covered": true,
+      "id": 2,
+      "kind": "string",
+      "path": [
+        "id"
+      ]
+    },
+    {
+      "covered": true,
+      "id": 3,
+      "kind": "string",
+      "path": [
+        "note"
+      ]
+    },
+    {
+      "covered": true,
+      "id": 4,
+      "kind": "number",
+      "path": [
+        "quantity"
+      ]
+    },
+    {
+      "covered": true,
+      "id": 5,
+      "kind": "string",
+      "path": [
+        "tags",
+        null
+      ]
+    },
+    {
+      "covered": true,
+      "id": 6,
+      "kind": "array",
+      "path": [
+        "tags"
+      ]
+    },
+    {
+      "covered": true,
+      "id": 7,
+      "kind": "number",
+      "path": [
+        "total_cents"
+      ]
+    },
+    {
+      "covered": true,
+      "id": 8,
+      "kind": "object",
+      "path": []
+    },
+    {
+      "covered": true,
+      "id": 9,
+      "kind": "null",
+      "path": [
+        "note"
+      ]
+    },
+    {
+      "covered": true,
+      "id": 10,
+      "kind": "empty-array",
+      "path": [
+        "tags"
+      ]
+    },
+    {
+      "covered": true,
+      "id": 11,
+      "kind": "missing",
+      "path": [
+        "note"
+      ]
+    }
+  ],
+  "format_version": 1,
+  "input": {
+    "bytes": 275,
+    "physical_lines": 3,
+    "records": 3,
+    "sha256": "5e7c9a551ba126529d32e19c417b57e670a855266194da12fdb635fa7283a04d",
+    "skipped_blank_lines": 0
+  },
+  "options": {
+    "limits": {
+      "max_associations": 2000000,
+      "max_depth": 64,
+      "max_features": 10000,
+      "max_input_bytes": 268435456,
+      "max_line_bytes": 1048576,
+      "max_nodes_per_record": 100000,
+      "max_output_bytes": 16777216,
+      "max_path_bytes": 4096,
+      "max_records": 100000,
+      "max_spool_bytes": 536870912
+    },
+    "max_rows": 3,
+    "skip_blank_lines": false
+  },
+  "rows": [
+    {
+      "byte_length": 102,
+      "byte_offset": 0,
+      "feature_ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "line": 1,
+      "new_feature_ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "selection_rank": 1,
+      "sha256": "50250b0104a603673820680cbb338a818b105698fd36803786655134415ad3ca"
+    },
+    {
+      "byte_length": 90,
+      "byte_offset": 102,
+      "feature_ids": [
+        1,
+        2,
+        4,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "line": 2,
+      "new_feature_ids": [
+        9,
+        10
+      ],
+      "selection_rank": 2,
+      "sha256": "ba4f2043b8a5dce5f43e30c430eed2ec540c1534ea850be090188382619a9185"
+    },
+    {
+      "byte_length": 83,
+      "byte_offset": 192,
+      "feature_ids": [
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+        8,
+        11
+      ],
+      "line": 3,
+      "new_feature_ids": [
+        11
+      ],
+      "selection_rank": 3,
+      "sha256": "29530441d4e02b7a1b82f8d2132b519e8c81939ff997de59162a571f6c1f9ed5"
+    }
+  ],
+  "selection": {
+    "bytes": 275,
+    "rows": 3,
+    "stop_reason": "complete"
+  },
+  "tool_version": "0.1.2"
+}

@@ -3,6 +3,7 @@
 [Home](../README.md) · [Documentation index](README.md)
 
 The implementation is deliberately small: `core.py` owns the selection contract;
+`comparison.py` validates and compares inventories by path/kind;
 `cli.py` adapts files/streams, exclusive output creation, reports, and exit status.
 There is no hidden state, external configuration, plugin system, network client,
 or dependency on locale, wall-clock time, or a random generator.
@@ -22,11 +23,13 @@ or dependency on locale, wall-clock time, or a random generator.
    the node limit is checked. The parsed line itself is still materialized.
 3. Each original line is copied into a private SQLite spool, alongside physical
    line and offset. The first pass collects observed object-member vocabularies.
+   Requested pins are checked against exact spooled bytes and shared budgets.
 4. A second spool pass builds exact row/feature edges. This is necessary because a
    key discovered on the last line can make its absence on the first line meaningful.
 5. An indexed gain table orders rows by uncovered-feature count and physical line.
    When a feature becomes covered, all incident row gains decrement once. No
-   per-record feature matrix is accumulated in Python memory.
+   per-record feature matrix is accumulated in Python memory. Explicit pins are
+   selected first by source line, then the same gain table drives greedy completion.
 6. Selected bytes plus the bounded report form a `Result`. The spool closes before
    CLI delivery. Only then does the CLI create outputs or emit stdout.
 
@@ -40,9 +43,10 @@ scratch data from other ordinary users on the machine; it is not encrypted stora
 
 - Every output record is exactly one original physical line.
 - Output records are unique and ordered by source position.
-- Each selected row adds at least one previously uncovered feature.
+- Each greedy row adds at least one previously uncovered feature. Pinned rows may
+  add none; they are retained for the explicitly reviewed byte identity.
 - `new_feature_ids` partition the final covered-feature set in selection order.
-- At each round, the feasible row with greatest new coverage wins; ties choose the
+- After pins, at each greedy round, the feasible row with greatest new coverage wins; ties choose the
   smallest physical line number. A previously excluded oversized row cannot become
   feasible because remaining output bytes never increase.
 - Selection is deterministic for identical input bytes, tool version, and options.
@@ -77,3 +81,7 @@ needed. Feature IDs are local to one report. A future model must not silently
 reinterpret old reports or describe a partial/truncated inventory as complete.
 Numeric-syntax mode opts into format 2 and declares its feature model explicitly;
 default-mode report bytes and selection semantics remain unchanged.
+Nonempty pins opt into format 3 and a pinned-first algorithm name, with explicit
+feature-model metadata and selection reasons. Inventory comparison accepts the
+same declared feature model across formats 1/2/3; selection changes do not change
+the observed feature universe. It rejects unknown formats/models and mismatches.

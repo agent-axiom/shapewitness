@@ -44,6 +44,9 @@ Lines **1, 3, 4, and 5** survive. See the [input](https://github.com/agent-axiom
 Use `--require-complete` to fail CI when the selected rows leave observed features uncovered.
 Opt into `--number-mode syntax` for integer versus fractional/exponent witnesses;
 see the [numeric feature model](https://github.com/agent-axiom/shapewitness/blob/main/docs/feature-model.md#optional-numeric-syntax-coverage).
+Version 0.1.3 also compares baseline/current structural inventories for CI and keeps
+known problem rows with SHA-256 checked pins. Try the complete
+[pytest + GitHub Actions regression case](https://github.com/agent-axiom/shapewitness/blob/main/docs/recipes/structural-regression.md).
 
 ## Read next
 

@@ -41,7 +41,7 @@ Never redirect output onto the input file.
 - **1**: the downstream output pipe closed
 - **2**: invalid input, invalid arguments, resource limit, or I/O failure
 - **3**: successful selection with uncovered features under `--require-complete`
-- **4**: observed inventory changed under `--require-unchanged` (source checkout)
+- **4**: observed inventory changed under `--require-unchanged`
 - **130**: interrupted
 
 Status belongs to stderr; stdout contains JSONL only. `--status json` provides a
@@ -59,10 +59,58 @@ shapewitness examples/events.jsonl -n 2 --require-complete
 # exit 3: 14/19 features covered; the two selected rows are still emitted
 ```
 
+## Keep a known problem row
+
+A shape-only selector can skip a known value-sensitive case. Require exact source
+rows by their reviewed physical line number and SHA-256:
+
+```sh
+# Obtain the digest from a reviewed source row or an earlier provenance report.
+# Replace this placeholder with the full lowercase 64-character SHA-256 digest.
+shapewitness export.jsonl -n 12 --pin-row 27:REVIEWED_SHA256 \
+  --output fixture.jsonl --report fixture-report.json --require-complete
+```
+
+Repeat `--pin-row` for multiple rows. Python callers use:
+
+```python
+from shapewitness import Pin, select
+
+with open("export.jsonl", "rb") as source:
+    result = select(source, max_rows=12, pins=(Pin(27, reviewed_sha256),))
+```
+
+The digest covers the whole original physical line, including whitespace and LF or
+CRLF. A line with no final newline hashes without one. Line numbers count skipped
+blank lines. Do not recalculate an expected digest automatically from an unreviewed
+input: that would accept changed data. Retain the reviewed pin with your test case.
+
+Pins are checked against the validated source and selected first, in source-line
+order regardless of argument order. Greedy coverage uses the remaining budget.
+All output remains in original source order; `selection_rank` records decision order.
+Every pin is retained even if it contributes no new structural feature, so its
+`new_feature_ids` may be empty. Pinning does not discover which values or combinations
+your application needs; keep domain assertions and order/cross-row tests.
+
+Pins count toward `max_rows` and `max_output_bytes`. Too many pinned rows, or pinned
+bytes that cannot fit, fail with `pin_budget`. An absent/skipped line fails with
+`pin_not_found`; changed bytes fail with `pin_mismatch`. Duplicate pin lines, invalid
+line numbers, and malformed digests fail with `configuration`. These are exit **2**
+errors before outputs, without raw values in the error. If the pins fit but the
+remaining budget cannot cover all features, normal partial coverage and exit **3**
+under `--require-complete` still apply. Full input/discovery limits remain enforced.
+
+Nonempty pins opt into coverage-report **format 3** and algorithm
+`pinned-first-greedy-new-features-first-line-tiebreak-v1`. The report includes explicit
+`feature_model`, `options.number_mode`, source-ordered `options.pins`, and each row's
+`selection_reason` (`pinned` or `greedy`). `Witness.selection_reason` exposes the same
+reason in Python. Empty pins keep the existing default format 1 or syntax format 2.
+See the [end-to-end regression recipe](recipes/structural-regression.md).
+
 ## Compare a structural baseline
 
-The comparison API and flags below are available in this source checkout, pending
-release. Install a reviewed commit rather than expecting them in PyPI 0.1.2.
+Comparison and pinning require version 0.1.3 or this reviewed source checkout.
+They are not available in PyPI 0.1.2.
 
 ```sh
 # Capture the full observed inventory without selecting rows.
@@ -88,7 +136,9 @@ selection coverage are never used as identities. With a baseline, JSON stderr al
 has a `comparison` summary with `changed` and added/removed counts.
 
 Supported inputs are default format-1 reports (implicit `json-structure-v1`) and
-syntax-mode format-2 reports (`json-structure-number-syntax-v1`). The two models
+syntax-mode format-2 reports (`json-structure-number-syntax-v1`), and pinned
+format-3 reports declaring either model. Reports with the same feature model can
+be compared across these format versions. The two feature models
 cannot be compared with each other, even if neither input contains numbers.
 Unknown formats, conflicting model metadata, duplicate/malformed feature entries,
 invalid hashes/counts, or malformed JSON fail with exit 2 before any output. The CLI
