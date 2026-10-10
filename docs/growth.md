@@ -74,6 +74,11 @@ acceptance. Use the [real-importer recipe](recipes/real-importers.md) as an opti
 second exercise, including its counterexamples. Its assertions cover only the
 documented cases; keep application-specific expected outputs and failure checks.
 
+For an external-data example, use the [public countries case](recipes/public-countries.md).
+It records actual reduction, importer assertions, selection overhead, and a first-N
+baseline. Its modest reduction and early failure are useful limits: this is our
+reproducible experiment, not one of the independent trials or external CI adoptions.
+
 ## 2. Release in two evidence-gated steps
 
 1. **Structural comparison first.** Compare baseline/current inventories by path
